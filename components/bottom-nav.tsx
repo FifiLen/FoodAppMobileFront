@@ -1,7 +1,7 @@
 // frontend/components/BottomNavigation.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
-import { Home, Search, ShoppingBag, Heart, User, Shield } from "lucide-react-native";
+import { Home, Search, ShoppingBag, Heart, User as UserIcon } from "lucide-react-native";
 import { COLORS } from './home-page/constants';
 import { useRouter, usePathname } from 'expo-router';
 
@@ -10,30 +10,29 @@ export function BottomNavigation() {
     const pathname = usePathname();
 
     const navItems = [
-        { id: 'home', label: 'Home', icon: Home, path: '/(tabs)/' },
-        { id: 'search', label: 'Search', icon: Search, path: '/(tabs)/search' },
-        { id: 'bag', label: 'Bag', icon: ShoppingBag, path: '/(tabs)/bag', isCentral: true },
-        { id: 'favorites', label: 'Favorites', icon: Heart, path: '/(tabs)/favorites' },
-        { id: 'admin', label: 'Admin', icon: Shield, path: '/(admin)/' }, // <<< TUTAJ JEST WPIS DLA ADMINA
+        { id: 'glowna', label: 'Główna', icon: Home, path: '/(tabs)/' }, // Zmieniono label i id
+        { id: 'szukaj', label: 'Szukaj', icon: Search, path: '/(tabs)/search' }, // Zmieniono label i id
+        { id: 'koszyk', label: 'Koszyk', icon: ShoppingBag, path: '/(tabs)/cart', isCentral: true }, // Zmieniono label i id
+        { id: 'ulubione', label: 'Ulubione', icon: Heart, path: '/(tabs)/favorites' }, // Zmieniono label i id
+        { id: 'konto', label: 'Konto', icon: UserIcon, path: '/(tabs)/profile' }, // Zmieniono label i id
     ];
 
     const isActive = (itemPath: string) => {
-        if (itemPath === '/(tabs)/') {
-            return pathname === itemPath || pathname === '/';
+        if (itemPath === '/(tabs)/' && (pathname === '/(tabs)/' || pathname === '/')) {
+            return true;
         }
-        // Dla ścieżek admina, isActive może nie być potrzebne w ten sam sposób,
-        // ale zostawmy ogólną logikę na razie.
-        return pathname.startsWith(itemPath);
+        if (itemPath !== '/(tabs)/' && itemPath !== '/' && pathname.startsWith(itemPath)) {
+            return true;
+        }
+        return false;
     };
 
     return (
         <View style={styles.container}>
             {navItems.map((item) => {
                 const active = isActive(item.path);
-                // Jeśli item.path to '/(admin)/', active będzie true tylko gdy jesteś w sekcji admina.
-                // Na stronie głównej (np. '/(tabs)/'), dla przycisku Admin, 'active' będzie false.
-                const iconColor = active && item.path !== '/(admin)/' ? COLORS.accent : COLORS.textSecondary;
-                const textColor = active && item.path !== '/(admin)/' ? COLORS.accent : COLORS.textSecondary;
+                const iconColor = active ? COLORS.accent : COLORS.textSecondary;
+                const textColor = active ? COLORS.accent : COLORS.textSecondary;
 
                 if (item.isCentral) {
                     return (
@@ -54,7 +53,7 @@ export function BottomNavigation() {
                         onPress={() => router.push(item.path as any)}
                     >
                         <item.icon size={24} color={iconColor} />
-                        <Text style={[styles.navText, { color: textColor, fontWeight: active && item.path !== '/(admin)/' ? "600" : "normal" }]}>
+                        <Text style={[styles.navText, { color: textColor, fontWeight: active ? "600" : "normal" }]}>
                             {item.label}
                         </Text>
                     </TouchableOpacity>
