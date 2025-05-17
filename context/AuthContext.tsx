@@ -1,4 +1,3 @@
-// context/AuthContext.tsx
 import React, {
     createContext,
     useContext,
@@ -7,117 +6,101 @@ import React, {
     ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {jwtDecode} from "jwt-decode";
+
+
+/* ---------- typy ---------- */
+interface DecodedToken {
+    /** np. `"Admin"` albo `["Admin","User"]` (w zależności od back-endu) */
+    role?: string | string[];
+    /** inne claimy, które Cię interesują */
+    sub?: string;          // user id
+    name?: string;
+    exp?: number;
+}
 
 interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
+    isAdmin: boolean;           //  <<< NOWE
     userToken: string | null;
-    userId: string | null; // <<< DODANE: ID zalogowanego użytkownika
-    signIn: (token: string, userId?: string) => Promise<void>; // <<< ZMODYFIKOWANE: signIn przyjmuje teraz opcjonalne userId
+    userId: string | null;
+    signIn: (token: string) => Promise<void>;
     signOut: () => Promise<void>;
 }
 
+/* ---------- kontekst ---------- */
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-    children: ReactNode;
-}
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const [isLoading,       setIsLoading] = useState(true);
+    const [userToken,       setUserToken] = useState<string | null>(null);
+    const [userId,          setUserId]    = useState<string | null>(null);
+    const [isAdmin,         setIsAdmin]   = useState(false);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [userToken, setUserToken] = useState<string | null>(null);
-    const [userId, setUserId] = useState<string | null>(null); // <<< DODANE: Stan dla userId
+    /* -- pomocnicze -- */
+    const analyseToken = (token: string | null): { admin: boolean; id: string | null } => {
+        try {
+            if (!token) return { admin: false, id: null };
+            const decoded = jwtDecode<DecodedToken>(token);
+            const roles   = Array.isArray(decoded.role)
+                ? decoded.role
+                : decoded.role
+                    ? [decoded.role]
+                    : [];
+            const admin   = roles.includes("Admin");
+            return { admin, id: decoded.sub ?? null };
+        } catch {
+            return { admin: false, id: null };
+        }
+    };
 
+    /* -- bootstrap -- */
     useEffect(() => {
-        const bootstrapAsync = async () => {
-            let token: string | null = null;
-            let id: string | null = null; // <<< DODANE: Zmienna lokalna dla userId
-            try {
-                token = await AsyncStorage.getItem("userToken");
-                id = await AsyncStorage.getItem("userId"); // <<< DODANE: Odczytaj userId z AsyncStorage
-            } catch (e) {
-                console.error("AuthContext: Nie udało się odzyskać tokenu lub userId", e);
-            }
-            setUserToken(token);
-            setUserId(id); // <<< DODANE: Ustaw odczytane userId
+        (async () => {
+            const storedToken = await AsyncStorage.getItem("userToken");
+            setUserToken(storedToken);
+            const { admin, id } = analyseToken(storedToken);
+            setIsAdmin(admin);
+            setUserId(id);
             setIsLoading(false);
-            console.log(
-                "AuthContext: Bootstrap zakończony. Token:",
-                token ? "ZNALEZIONO" : "BRAK",
-                "UserId:", id ? "ZNALEZIONO" : "BRAK", // <<< DODANE: Log dla userId
-                "IsAuthenticated po bootstrap:",
-                !!token,
-            );
-        };
-
-        bootstrapAsync();
+        })();
     }, []);
 
-    const signIn = async (token: string, receivedUserId?: string) => { // <<< ZMODYFIKOWANE: Dodano parametr receivedUserId
-        try {
-            await AsyncStorage.setItem("userToken", token);
-            setUserToken(token);
-            if (receivedUserId) { // <<< DODANE: Jeśli userId zostało przekazane
-                await AsyncStorage.setItem("userId", receivedUserId);
-                setUserId(receivedUserId);
-                console.log("AuthContext: signIn wykonane. Token i userId zapisane. IsAuthenticated teraz powinno być true.");
-            } else {
-                // Jeśli API logowania nie zwraca userId, możemy go tu usunąć lub zignorować
-                // await AsyncStorage.removeItem("userId"); // Opcjonalnie, jeśli chcemy czyścić przy braku
-                // setUserId(null);
-                console.log("AuthContext: signIn wykonane. Token zapisany (userId nie przekazano). IsAuthenticated teraz powinno być true.");
-            }
-        } catch (e) {
-            console.error("AuthContext: Błąd podczas signIn", e);
+    /* -- api -- */
+    const signIn = async (token: string) => {
+        await AsyncStorage.setItem("userToken", token);
+        setUserToken(token);
+        const { admin, id } = analyseToken(token);
+        setIsAdmin(admin);
+        if (id) {
+            await AsyncStorage.setItem("userId", id);
+            setUserId(id);
         }
     };
 
     const signOut = async () => {
-        try {
-            await AsyncStorage.removeItem("userToken");
-            await AsyncStorage.removeItem("userId"); // <<< DODANE: Usuń userId przy wylogowaniu
-            setUserToken(null);
-            setUserId(null); // <<< DODANE: Zresetuj stan userId
-            console.log(
-                "AuthContext: signOut wykonane. userToken i userId ustawione na null. IsAuthenticated teraz powinno być false.",
-            );
-        } catch (e) {
-            console.error("AuthContext: Błąd podczas signOut", e);
-        }
+        await AsyncStorage.multiRemove(["userToken", "userId"]);
+        setUserToken(null);
+        setUserId(null);
+        setIsAdmin(false);
     };
 
-    const isAuthenticated = !!userToken;
-
-    console.log(
-        "AuthContext (Render): isLoading:",
+    const value: AuthContextType = {
         isLoading,
-        "isAuthenticated:",
-        isAuthenticated,
-        "userToken:",
-        userToken ? userToken.substring(0, 10) + "..." : null,
-        "userId:", userId // <<< DODANE: Log dla userId
-    );
+        isAuthenticated: !!userToken,
+        isAdmin,
+        userToken,
+        userId,
+        signIn,
+        signOut,
+    };
 
-    return (
-        <AuthContext.Provider
-            value={{
-                isLoading,
-                isAuthenticated,
-                userToken,
-                userId, // <<< DODANE: Udostępnij userId w kontekście
-                signIn,
-                signOut,
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = (): AuthContextType => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error("useAuth musi być używany wewnątrz AuthProvider");
-    }
-    return context;
+export const useAuth = () => {
+    const ctx = useContext(AuthContext);
+    if (!ctx) throw new Error("useAuth musi być użyty wewnątrz <AuthProvider>");
+    return ctx;
 };

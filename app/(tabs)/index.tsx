@@ -1,7 +1,17 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { View, Text, TouchableOpacity, Animated, Platform, StatusBar, ScrollView, Image } from "react-native"
+import {useState, useRef, useEffect, useCallback} from "react"
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    Animated,
+    Platform,
+    StatusBar,
+    ScrollView,
+    Image,
+    ActivityIndicator
+} from "react-native"
 import { ShoppingBag, Bell, MapPin, Search, Clock, Star, Bookmark, TrendingUp, Percent } from "lucide-react-native"
 import { useRouter } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
@@ -10,6 +20,8 @@ import { COLORS } from "@/components/home-page/constants"
 import { CategoriesSection } from "@/components/home-page/CategoriesSection"
 import { ProductsSection } from "@/components/home-page/ProductSection"
 import { FeaturedRestaurantsSection } from "@/components/home-page/FeaturedRestaurantsSection"
+import {useAuth} from "@/context/AuthContext";
+import {API_URL} from "@/app/constants";
 
 export default function ModernFoodApp() {
     const scrollY = useRef(new Animated.Value(0)).current
@@ -17,6 +29,46 @@ export default function ModernFoodApp() {
     const slideAnim = useRef(new Animated.Value(30)).current
     const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
     const router = useRouter()
+
+    const { userToken } = useAuth();
+    const [loadingAddr, setLoadingAddr] = useState<boolean>(true);
+    const [addressLabel, setAddressLabel] = useState<string>("Brak adresu");
+
+    const loadAddress = useCallback(async () => {
+        if (!userToken) {
+            setLoadingAddr(false);
+            return;
+        }
+        try {
+            const res = await fetch(`${API_URL}/api/address`, {
+                headers: { Authorization: `Bearer ${userToken}` },
+            });
+            const json = await res.json();
+            const list = Array.isArray(json)
+                ? json
+                : Array.isArray(json?.$values)
+                    ? json.$values
+                    : json
+                        ? [json]
+                        : [];
+
+            if (list.length > 0) {
+                const a = list[0]; // pierwszy zapisany adres
+                const label = `${a.street ?? ""}${
+                    a.apartment ? `/${a.apartment}` : ""
+                }, ${a.postalCode ?? ""} ${a.city ?? ""}`.trim();
+                setAddressLabel(label || "Brak adresu");
+            }
+        } catch (e) {
+            console.error("[Home] Nie udało się pobrać adresu:", e);
+        } finally {
+            setLoadingAddr(false);
+        }
+    }, [userToken]);
+
+    useEffect(() => {
+        loadAddress();
+    }, [loadAddress]);
 
     useEffect(() => {
         Animated.parallel([
@@ -49,7 +101,7 @@ export default function ModernFoodApp() {
 
     const handleBannerPress = () => {
         console.log("Promotional banner pressed. Navigating to welcome offer screen.");
-        router.push("/welcome-offer"); // Or your chosen route name
+        router.push("/(tabs)/welcome-offer"); // Or your chosen route name
     };
 
     return (
@@ -157,32 +209,33 @@ export default function ModernFoodApp() {
                     }}
                 >
                     <View
-                        style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginBottom: 8,
-                        }}
+                        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
                     >
                         <MapPin size={16} color={COLORS.primary} />
                         <Text
-                            style={{
-                                fontSize: 14,
-                                color: COLORS.textSecondary,
-                                marginLeft: 6,
-                            }}
+                            style={{ fontSize: 14, color: COLORS.textSecondary, marginLeft: 6 }}
                         >
                             Dostawa do
                         </Text>
-                        <Text
-                            style={{
-                                fontSize: 14,
-                                fontWeight: "600",
-                                color: COLORS.textPrimary,
-                                marginLeft: 4,
-                            }}
-                        >
-                            ul. Warszawska 24
-                        </Text>
+
+                        {loadingAddr ? (
+                            <ActivityIndicator
+                                size="small"
+                                color={COLORS.primary}
+                                style={{ marginLeft: 6 }}
+                            />
+                        ) : (
+                            <Text
+                                style={{
+                                    fontSize: 14,
+                                    fontWeight: "600",
+                                    color: COLORS.textPrimary,
+                                    marginLeft: 4,
+                                }}
+                            >
+                                {addressLabel}
+                            </Text>
+                        )}
                     </View>
 
                     <Text
@@ -513,98 +566,7 @@ export default function ModernFoodApp() {
                     </ScrollView>
                 </Animated.View>
 
-                {/* NOWE: Sekcja Na Czasie */}
-                {/*<Animated.View*/}
-                {/*    style={{*/}
-                {/*        opacity: fadeAnim,*/}
-                {/*        transform: [{ translateY: slideAnim }],*/}
-                {/*        marginTop: 10,*/}
-                {/*        marginBottom: 15,*/}
-                {/*    }}*/}
-                {/*>*/}
-                {/*    <View*/}
-                {/*        style={{*/}
-                {/*            flexDirection: "row",*/}
-                {/*            justifyContent: "space-between",*/}
-                {/*            alignItems: "center",*/}
-                {/*            paddingHorizontal: 20,*/}
-                {/*            marginBottom: 15,*/}
-                {/*        }}*/}
-                {/*    >*/}
-                {/*        <View style={{ flexDirection: "row", alignItems: "center" }}>*/}
-                {/*            <TrendingUp size={18} color={COLORS.primary} style={{ marginRight: 6 }} />*/}
-                {/*            <Text style={{ fontSize: 18, fontWeight: "700", color: COLORS.textPrimary }}>Na Czasie</Text>*/}
-                {/*        </View>*/}
-                {/*        <TouchableOpacity>*/}
-                {/*            <Text style={{ fontSize: 14, color: COLORS.primary, fontWeight: "600" }}>Zobacz wszystkie</Text>*/}
-                {/*        </TouchableOpacity>*/}
-                {/*    </View>*/}
 
-                {/*    <View style={{ paddingHorizontal: 20 }}>*/}
-                {/*        {[1, 2].map((item) => (*/}
-                {/*            <TouchableOpacity key={item} style={{ marginBottom: 15 }}>*/}
-                {/*                <View*/}
-                {/*                    style={{*/}
-                {/*                        flexDirection: "row",*/}
-                {/*                        borderRadius: 16,*/}
-                {/*                        backgroundColor: COLORS.cardBackground,*/}
-                {/*                        shadowColor: "#000",*/}
-                {/*                        shadowOffset: { width: 0, height: 4 },*/}
-                {/*                        shadowOpacity: 0.1,*/}
-                {/*                        shadowRadius: 8,*/}
-                {/*                        elevation: 3,*/}
-                {/*                        overflow: "hidden",*/}
-                {/*                    }}*/}
-                {/*                >*/}
-                {/*                    <View style={{ width: 100, height: 100, backgroundColor: "#f0f0f0" }}>*/}
-                {/*                        <Image*/}
-                {/*                            source={{ uri: `https://picsum.photos/100/100?random=${item + 20}` }}*/}
-                {/*                            style={{ width: "100%", height: "100%" }}*/}
-                {/*                            resizeMode="cover"*/}
-                {/*                        />*/}
-                {/*                    </View>*/}
-                {/*                    <View style={{ flex: 1, padding: 12, justifyContent: "space-between" }}>*/}
-                {/*                        <View>*/}
-                {/*                            <Text style={{ fontSize: 16, fontWeight: "600", color: COLORS.textPrimary, marginBottom: 4 }}>*/}
-                {/*                                {item === 1 ? "Zdrowe Bowle" : "Kuchnia Roślinna"}*/}
-                {/*                            </Text>*/}
-                {/*                            <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 4 }}>*/}
-                {/*                                {item === 1 ? "Odkryj nowy trend kulinarny" : "Popularne dania bez mięsa"}*/}
-                {/*                            </Text>*/}
-                {/*                        </View>*/}
-                {/*                        <View style={{ flexDirection: "row", alignItems: "center" }}>*/}
-                {/*                            <View*/}
-                {/*                                style={{*/}
-                {/*                                    backgroundColor: "rgba(0,0,0,0.05)",*/}
-                {/*                                    paddingVertical: 4,*/}
-                {/*                                    paddingHorizontal: 8,*/}
-                {/*                                    borderRadius: 6,*/}
-                {/*                                    marginRight: 8,*/}
-                {/*                                }}*/}
-                {/*                            >*/}
-                {/*                                <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>*/}
-                {/*                                    {item === 1 ? "#zdrowie" : "#eko"}*/}
-                {/*                                </Text>*/}
-                {/*                            </View>*/}
-                {/*                            <View*/}
-                {/*                                style={{*/}
-                {/*                                    backgroundColor: "rgba(0,0,0,0.05)",*/}
-                {/*                                    paddingVertical: 4,*/}
-                {/*                                    paddingHorizontal: 8,*/}
-                {/*                                    borderRadius: 6,*/}
-                {/*                                }}*/}
-                {/*                            >*/}
-                {/*                                <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>*/}
-                {/*                                    {item === 1 ? "#fitness" : "#vegan"}*/}
-                {/*                                </Text>*/}
-                {/*                            </View>*/}
-                {/*                        </View>*/}
-                {/*                    </View>*/}
-                {/*                </View>*/}
-                {/*            </TouchableOpacity>*/}
-                {/*        ))}*/}
-                {/*    </View>*/}
-                {/*</Animated.View>*/}
             </ScrollView>
         </View>
     )

@@ -1,87 +1,54 @@
 import React, { useEffect, useRef } from "react";
-import { Slot, useRouter, usePathname, useSegments, Stack } from "expo-router";
+import { Slot, useRouter, usePathname, useSegments } from "expo-router";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { BottomNavigation } from "@/components/bottom-nav";
 
-function AppContentWithNavigation() {
-    const router = useRouter();
-    const pathname = usePathname();
-    const segments = useSegments();
-    const { isLoading, isAuthenticated } = useAuth();
-    const layoutInstanceId = useRef(
-        Math.random().toString(36).substring(7),
-    ).current;
+function AppContent() {
+    const { isLoading, isAuthenticated, isAdmin } = useAuth();
+    const router      = useRouter();
+    const pathname    = usePathname();
+    const segments    = useSegments();
+    const instanceId  = useRef(Math.random().toString(36).slice(2)).current;
 
     useEffect(() => {
-        console.log(
-            `AppNavigationLogic [${layoutInstanceId}]: Efekt nawigacji START. isLoading: ${isLoading}, isAuthenticated: ${isAuthenticated}, Ścieżka: ${pathname}, Segmenty: ${segments.join("/")}`,
-        );
+        if (isLoading) return;
 
-        if (isLoading) {
-            console.log(
-                `AppNavigationLogic [${layoutInstanceId}]: isLoading true, return.`,
-            );
+        const rootSeg        = segments[0] || "";
+        const inAuthGroup    = rootSeg === "(auth)";
+        const inAdminGroup   = rootSeg === "(admin)";
+        const inTabsGroup    = rootSeg === "(tabs)";
+
+        /* ------ blokada admina ------ */
+        if (isAuthenticated && inAdminGroup && !isAdmin) {
+            router.replace("/(tabs)");
             return;
         }
 
-        const currentFirstSegment = segments[0] || "";
-        const isInAuthGroup = currentFirstSegment === "(auth)";
-        const isInAdminGroup = currentFirstSegment === "(admin)";
-
-        console.log(
-            `AppNavigationLogic [${layoutInstanceId}]: Sprawdzanie warunków. isAuthenticated: ${isAuthenticated}, isInAuthGroup: ${isInAuthGroup}, isInAdminGroup: ${isInAdminGroup}`
-        );
-
-        if (!isAuthenticated) {
-            if (!isInAuthGroup) {
-                console.log(
-                    `AppNavigationLogic [${layoutInstanceId}]: DECYZJA: Niezalogowany i nie w grupie auth/admin. Przekierowuję do / (auth)`,
-                );
-                router.replace("/(auth)");
-            } else {
-                console.log(
-                    `AppNavigationLogic [${layoutInstanceId}]: DECYZJA: Niezalogowany, ale już w grupie auth. Brak przekierowania.`,
-                );
-            }
-        } else { // isAuthenticated === true
-            if (isInAuthGroup) {
-                console.log(
-                    `AppNavigationLogic [${layoutInstanceId}]: DECYZJA: Zalogowany i był w grupie auth. Przekierowuję do / (tabs)/`,
-                );
-                router.replace("/(tabs)");
-            } else if (pathname === "/" && !isInAdminGroup && currentFirstSegment !== "(tabs)") {
-                console.log(
-                    `AppNavigationLogic [${layoutInstanceId}]: DECYZJA: Zalogowany na "/" i nie w admin/tabs. Przekierowuję do / (tabs)/`
-                );
-                router.replace("/(tabs)");
-            }
+        /* ------ redirecty zależne od auth ------ */
+        if (!isAuthenticated && !inAuthGroup) {
+            router.replace("/(auth)");
+        } else if (isAuthenticated && inAuthGroup) {
+            router.replace("/(tabs)");
+        } else if (isAuthenticated && pathname === "/" && !inTabsGroup && !inAdminGroup) {
+            router.replace("/(tabs)");
         }
-        console.log(`AppNavigationLogic [${layoutInstanceId}]: Efekt nawigacji KONIEC.`);
-
-    }, [isLoading, isAuthenticated, segments, router, pathname, layoutInstanceId]);
-
-    console.log(
-        `AppNavigationLogic [${layoutInstanceId}]: Renderowanie. isLoading: ${isLoading}, isAuthenticated: ${isAuthenticated}`,
-    );
+    }, [isLoading, isAuthenticated, isAdmin, segments, pathname, router]);
 
     if (isLoading) {
-        console.log(
-            `AppNavigationLogic [${layoutInstanceId}]: Renderuję wskaźnik ładowania.`,
-        );
         return (
             <View style={styles.centered}>
                 <ActivityIndicator size="large" color="#A3D69D" />
-                <Text>Ładowanie aplikacji...</Text>
+                <Text>Ładowanie…</Text>
             </View>
         );
     }
 
-    const firstSegmentForNav = segments[0] || "";
-    const showBottomNav = isAuthenticated && firstSegmentForNav !== "(auth)" && firstSegmentForNav !== "(admin)";
-
-    console.log(`AppNavigationLogic [${layoutInstanceId}]: Renderuję Slot. showBottomNav: ${showBottomNav}`);
+    /* dolna nawigacja tylko dla zalogowanych, poza (auth) i (admin) */
+    const rootSeg = segments[0] || "";
+    const showBottomNav =
+        isAuthenticated && rootSeg !== "(auth)" && rootSeg !== "(admin)";
 
     return (
         <View style={{ flex: 1 }}>
@@ -95,16 +62,12 @@ export default function RootLayout() {
     return (
         <AuthProvider>
             <CartProvider>
-                <AppContentWithNavigation />
+                <AppContent />
             </CartProvider>
         </AuthProvider>
     );
 }
 
 const styles = StyleSheet.create({
-    centered: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
+    centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 });
