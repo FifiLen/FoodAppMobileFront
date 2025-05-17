@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   type ListRenderItem,
+  ViewStyle, // Import ViewStyle for itemStyle
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOWS } from "./constants";
@@ -19,13 +20,22 @@ import {
 import { RefreshCw, ChevronRight } from "lucide-react-native";
 
 import { useAuth } from "@/context/AuthContext";
-import { RestaurantDto, PopularRestaurantDto, FavoriteItemDto, restaurantService, favoriteService } from "@/src/api/services";
+import {
+  RestaurantDto,
+  PopularRestaurantDto,
+  FavoriteItemDto,
+  restaurantService,
+  favoriteService,
+} from "@/src/api/services";
 
-interface FeaturedRestaurantsSectionProps {
+// Updated Props Interface
+export interface FeaturedRestaurantsSectionProps {
   title?: string;
   maxItems?: number;
   horizontal?: boolean;
-  onViewAllPress?: () => void;
+  onViewAllPress?: () => void; // Kept as optional
+  showViewAllButton?: boolean; // New optional prop
+  itemStyle?: ViewStyle; // New optional prop for individual item styling
 }
 
 export function FeaturedRestaurantsSection({
@@ -33,6 +43,8 @@ export function FeaturedRestaurantsSection({
   maxItems,
   horizontal = false,
   onViewAllPress,
+  showViewAllButton = true, // Default to true if not provided
+  itemStyle, // Destructure the new prop
 }: FeaturedRestaurantsSectionProps) {
   const router = useRouter();
   const [restaurants, setRestaurants] = useState<RestaurantListItemProps[]>([]);
@@ -41,7 +53,6 @@ export function FeaturedRestaurantsSection({
 
   const { userToken, isAuthenticated, isLoading: isLoadingAuth } = useAuth();
 
-  // Maps API DTO (RestaurantDto or PopularRestaurantDto) to RestaurantListItemProps
   const mapApiRestaurantToListItemProps = (
     apiRestaurant: RestaurantDto | PopularRestaurantDto,
     userFavorites: FavoriteItemDto[],
@@ -49,38 +60,18 @@ export function FeaturedRestaurantsSection({
     const isFav = userFavorites.some(
       (fav) => fav.restaurantId === apiRestaurant.id,
     );
-
-    // Fields available in both RestaurantDto and PopularRestaurantDto
     const baseProps = {
       id: apiRestaurant.id.toString(),
       name: apiRestaurant.name || "Nieznana Restauracja",
       isFavorite: isFav,
     };
-
-    // Fields specific to PopularRestaurantDto (if any beyond favoriteCount, which isn't directly used in ListItemProps)
-    // let popularSpecificProps = {};
-    // if ('favoriteCount' in apiRestaurant) { // Type guard for PopularRestaurantDto
-    //   // popularSpecificProps.someOtherField = (apiRestaurant as PopularRestaurantDto).someOtherField;
-    // }
-
-    // For fields NOT in RestaurantDto or PopularRestaurantDto, we'll rely on RestaurantListItem's defaults or mock them here.
-    // RestaurantListItemProps expects: imageUrl?, cuisineType?, rating?, deliveryTime?, distance?, isOpen?, promoLabel?
-
     return {
       ...baseProps,
-      // imageUrl: undefined, // Explicitly undefined; RestaurantListItem will use its default
-      // cuisineType: undefined, // RestaurantListItem will not render this if undefined
-      // rating: undefined, // RestaurantListItem will not render this if undefined
-
-      // Mock data (as in your original RestaurantListItem or here for clarity)
-      // If RestaurantListItem handles these mocks internally, you can omit them here.
-      // It's generally better for the parent (this component) to decide what to pass.
       deliveryTime: `${15 + Math.floor(Math.random() * 20)}-${
         30 + Math.floor(Math.random() * 15)
       } min`,
       distance: `${(Math.random() * 5 + 0.5).toFixed(1)} km`,
       isOpen: Math.random() > 0.2,
-      // promoLabel: Math.random() > 0.7 ? "Darmowa dostawa" : undefined, // Example
     };
   };
 
@@ -88,15 +79,13 @@ export function FeaturedRestaurantsSection({
     if (isLoadingAuth) {
       return;
     }
-
     setIsLoading(true);
     setError(null);
-
     try {
       const restaurantApiData =
-        horizontal && maxItems
-          ? await restaurantService.getPopular(maxItems) // Returns PopularRestaurantDto[]
-          : await restaurantService.getAll(); // Returns RestaurantDto[]
+        horizontal && maxItems && title === "Popularne Restauracje" // Assuming getPopular is only for the default "Popularne" title
+          ? await restaurantService.getPopular(maxItems)
+          : await restaurantService.getAll();
 
       let userFavoritesData: FavoriteItemDto[] = [];
       if (isAuthenticated && userToken) {
@@ -107,9 +96,11 @@ export function FeaturedRestaurantsSection({
         mapApiRestaurantToListItemProps(r, userFavoritesData),
       );
 
-      if (maxItems && !horizontal) {
+      // Apply maxItems slicing if it's a vertical list or if it's horizontal but not using getPopular
+      if (maxItems && (!horizontal || !(title === "Popularne Restauracje" && maxItems))) {
         mappedData = mappedData.slice(0, maxItems);
       }
+
       setRestaurants(mappedData);
     } catch (err: any) {
       console.error("FeaturedRestaurantsSection: Błąd:", err);
@@ -122,10 +113,10 @@ export function FeaturedRestaurantsSection({
 
   useFocusEffect(
     useCallback(() => {
-    if (!isLoadingAuth) {
+      if (!isLoadingAuth) {
         fetchFeaturedData();
-    }
-  }, [isLoadingAuth, isAuthenticated, userToken])
+      }
+    }, [isLoadingAuth, isAuthenticated, userToken, horizontal, maxItems, title]), // Added dependencies that affect data fetching logic
   );
 
   const handleRestaurantPress = (restaurantId: string) => {
@@ -155,8 +146,12 @@ export function FeaturedRestaurantsSection({
       } else {
         await favoriteService.removeRestaurantFavorite(numericId, userToken);
       }
-    } catch (apiError: any) {
-      console.error("FeaturedRestaurantsSection: Błąd API przy zmianie ulubionych:", apiError);
+    } catch (apiError: any)
+    {
+      console.error(
+        "FeaturedRestaurantsSection: Błąd API przy zmianie ulubionych:",
+        apiError,
+      );
       setRestaurants(originalRestaurants);
       setError(`Błąd aktualizacji ulubionych: ${apiError.message}`);
     }
@@ -166,11 +161,12 @@ export function FeaturedRestaurantsSection({
     item,
   }) => (
     <View
-      style={
+      style={[
         horizontal
           ? styles.horizontalListItemContainer
-          : styles.verticalListItemContainer
-      }
+          : styles.verticalListItemContainer,
+        itemStyle, // Apply the itemStyle prop here
+      ]}
     >
       <RestaurantListItem
         item={item}
@@ -181,24 +177,37 @@ export function FeaturedRestaurantsSection({
   );
 
   const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <Text style={styles.headerTitle}>{title}</Text>
-      {error && !isLoading && (
-        <TouchableOpacity
-          onPress={fetchFeaturedData}
-          style={styles.headerButton}
-        >
-          <RefreshCw size={20} color={COLORS.primary} />
-        </TouchableOpacity>
-      )}
-      {onViewAllPress && !error && !isLoading && restaurants.length > 0 && (
-        <TouchableOpacity onPress={onViewAllPress} style={styles.headerButton}>
-          <Text style={styles.seeAllText}>Zobacz wszystkie</Text>
-          <ChevronRight size={18} color={COLORS.primary} />
-        </TouchableOpacity>
-      )}
-    </View>
+    // Only render header if title is provided or if the "View All" button should be shown
+    (title || (showViewAllButton && onViewAllPress && !error && !isLoading && restaurants.length > 0)) && (
+      <View style={styles.headerContainer}>
+        {title && <Text style={styles.headerTitle}>{title}</Text>}
+        {/* Error refresh button - shown only if there's an error and no loading */}
+        {error && !isLoading && (
+          <TouchableOpacity
+            onPress={fetchFeaturedData}
+            style={styles.headerButton}
+          >
+            <RefreshCw size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
+        {/* "View All" button - shown based on showViewAllButton prop and other conditions */}
+        {showViewAllButton &&
+          onViewAllPress &&
+          !error &&
+          !isLoading &&
+          restaurants.length > 0 && (
+            <TouchableOpacity
+              onPress={onViewAllPress}
+              style={styles.headerButton}
+            >
+              <Text style={styles.seeAllText}>Zobacz wszystkie</Text>
+              <ChevronRight size={18} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
+      </View>
+    )
   );
+
 
   if (isLoadingAuth || isLoading) {
     return (
@@ -207,7 +216,9 @@ export function FeaturedRestaurantsSection({
         <View style={styles.centeredMessage}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.messageText}>
-            {isLoadingAuth ? "Sprawdzanie autoryzacji..." : "Ładowanie restauracji..."}
+            {isLoadingAuth
+              ? "Sprawdzanie autoryzacji..."
+              : "Ładowanie restauracji..."}
           </Text>
         </View>
       </View>
@@ -231,6 +242,12 @@ export function FeaturedRestaurantsSection({
     );
   }
 
+  // If title is empty and no restaurants, don't render anything (useful for WelcomeOfferScreen)
+  if (!title && restaurants.length === 0 && !isLoading) {
+      return null;
+  }
+
+
   if (restaurants.length === 0 && !isLoading) {
     return (
       <View style={styles.container}>
@@ -246,7 +263,7 @@ export function FeaturedRestaurantsSection({
     <View style={styles.container}>
       {renderHeader()}
       {error && restaurants.length > 0 && (
-         <Text style={[styles.errorTextBrief]}>{error}</Text>
+        <Text style={[styles.errorTextBrief]}>{error}</Text>
       )}
       <FlatList
         data={restaurants}
@@ -260,96 +277,102 @@ export function FeaturedRestaurantsSection({
             ? styles.listContainerHorizontal
             : styles.listContainerVertical
         }
-        extraData={restaurants}
+        extraData={restaurants} // Important for re-rendering when isFavorite changes
       />
     </View>
   );
 }
 
-// Styles (remain the same)
 const styles = StyleSheet.create({
-    container: {
-        marginBottom: SPACING.xl,
-    },
-    headerContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingHorizontal: SPACING.md,
-        marginBottom: SPACING.md,
-    },
-    headerTitle: {
-        fontSize: FONT_SIZE.xl,
-        fontWeight: "bold",
-        color: COLORS.textPrimary,
-    },
-    headerButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: SPACING.xs,
-        paddingHorizontal: SPACING.sm,
-    },
-    seeAllText: {
-        fontSize: FONT_SIZE.sm,
-        color: COLORS.primary,
-        fontWeight: "600",
-        marginRight: SPACING.xs,
-    },
-    centeredMessage: {
-        paddingVertical: SPACING.lg,
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: 100,
-        marginHorizontal: SPACING.md,
-    },
-    messageText: {
-        marginTop: SPACING.sm,
-        color: COLORS.textSecondary,
-        fontSize: FONT_SIZE.sm,
-    },
-    errorText: {
-        color: COLORS.danger,
-        textAlign: "center",
-        marginBottom: SPACING.sm,
-        fontSize: FONT_SIZE.sm,
-        paddingHorizontal: SPACING.md,
-    },
-    errorTextBrief: {
-        color: COLORS.danger,
-        textAlign: "center",
-        marginHorizontal: SPACING.md,
-        marginBottom: SPACING.sm,
-        fontSize: FONT_SIZE.xs,
-    },
-    retryButton: {
-        backgroundColor: COLORS.primary,
-        paddingVertical: SPACING.sm,
-        paddingHorizontal: SPACING.lg,
-        borderRadius: BORDER_RADIUS.md,
-        ...SHADOWS.small,
-        marginTop: SPACING.md,
-    },
-    retryButtonText: {
-        color: COLORS.white,
-        fontSize: FONT_SIZE.sm,
-        fontWeight: "600",
-    },
-    centeredMessageText: {
-        paddingHorizontal: SPACING.lg,
-        paddingVertical: SPACING.md,
-        textAlign: "center",
-        color: COLORS.textSecondary,
-        minHeight: 50,
-        fontSize: FONT_SIZE.sm,
-    },
-    listContainerHorizontal: {
-        paddingLeft: SPACING.md,
-        paddingRight: SPACING.xs,
-    },
-    listContainerVertical: {},
-    horizontalListItemContainer: {
-        width: 280,
-        marginRight: SPACING.md,
-    },
-    verticalListItemContainer: {},
+  container: {
+    marginBottom: SPACING.xl,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  headerTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: "bold",
+    color: COLORS.textPrimary,
+    flexShrink: 1, // Allow title to shrink if button takes space
+  },
+  headerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    marginLeft: SPACING.sm, // Add some margin if title is long
+  },
+  seeAllText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.primary,
+    fontWeight: "600",
+    marginRight: SPACING.xs,
+  },
+  centeredMessage: {
+    paddingVertical: SPACING.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 100,
+    marginHorizontal: SPACING.md,
+  },
+  messageText: {
+    marginTop: SPACING.sm,
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZE.sm,
+  },
+  errorText: {
+    color: COLORS.danger,
+    textAlign: "center",
+    marginBottom: SPACING.sm,
+    fontSize: FONT_SIZE.sm,
+    paddingHorizontal: SPACING.md,
+  },
+  errorTextBrief: {
+    color: COLORS.danger,
+    textAlign: "center",
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
+    fontSize: FONT_SIZE.xs,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.md,
+    ...SHADOWS.small,
+    marginTop: SPACING.md,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: "600",
+  },
+  centeredMessageText: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    textAlign: "center",
+    color: COLORS.textSecondary,
+    minHeight: 50,
+    fontSize: FONT_SIZE.sm,
+  },
+  listContainerHorizontal: {
+    paddingLeft: SPACING.md,
+    paddingRight: SPACING.xs, // To give a bit of space for the last item's shadow
+  },
+  listContainerVertical: {
+    paddingHorizontal: SPACING.md, // Add padding for vertical lists if needed
+  },
+  horizontalListItemContainer: {
+    // width: 280, // Default width, will be overridden by itemStyle if provided
+    marginRight: SPACING.md,
+  },
+  verticalListItemContainer: {
+    // No specific width, let RestaurantListItem handle its own width
+    marginBottom: SPACING.md, // Add margin for vertical lists
+  },
 });

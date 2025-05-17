@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,233 +12,321 @@ import {
   Keyboard,
   Platform,
   ListRenderItem,
+  Alert,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native"; // For re-fetching on screen focus
+import { useFocusEffect } from "@react-navigation/native";
 
-import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOWS } from "@/components/home-page/constants"; // Adjust path
+import {
+  COLORS,
+  SPACING,
+  FONT_SIZE,
+  BORDER_RADIUS,
+  SHADOWS,
+} from "@/components/home-page/constants";
 import {
   RestaurantListItem,
   type RestaurantListItemProps,
-} from "@/components/home-page/RestaurantListItem"; // Adjust path
+} from "@/components/home-page/RestaurantListItem";
+// You might want a specific ProductListItem in the future:
+// import { ProductListItem, type ProductListItemPropsForFav } from "@/components/ProductListItem";
 import { useAuth } from "@/context/AuthContext";
-import { Search, XCircle, HeartOff } from "lucide-react-native"; // Icons
+import {
+  Search,
+  XCircle,
+  HeartOff,
+  Store,
+  Package, // Package will be replaced by Utensils for the button
+  Utensils, // Added Utensils icon
+} from "lucide-react-native";
 import { FavoriteItemDto, favoriteService } from "@/src/api/services";
 
-// Define what a UI-ready favorite item will look like (mapped from FavoriteItemDto)
+type FavoriteDisplayType = "restaurant" | "product";
+
 interface UIFavoriteItem extends RestaurantListItemProps {
-  originalType: "restaurant" | "product"; // To distinguish if needed later
-  // Add product-specific fields if you display product favorites differently
+  originalApiId: string;
+  originalType: FavoriteDisplayType;
   productName?: string;
   productPrice?: number;
   productRestaurantName?: string;
-  restaurantName?:string;
 }
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const { userToken, isAuthenticated, isLoading: isLoadingAuth } = useAuth();
 
-  const [allFavorites, setAllFavorites] = useState<UIFavoriteItem[]>([]);
-  const [filteredFavorites, setFilteredFavorites] = useState<UIFavoriteItem[]>([]);
+  const [allRawFavorites, setAllRawFavorites] = useState<FavoriteItemDto[]>([]);
+  const [processedAndFilteredFavorites, setProcessedAndFilteredFavorites] =
+    useState<UIFavoriteItem[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeFavoriteType, setActiveFavoriteType] =
+    useState<FavoriteDisplayType>("restaurant");
 
-  const mapFavoriteDtoToUIItem = (
-    dto: FavoriteItemDto,
-  ): UIFavoriteItem | null => {
-    if (dto.restaurantId && dto.restaurantName) {
-      return {
-        id: dto.restaurantId.toString(), // Use restaurantId as the primary ID for the list item
-        name: dto.restaurantName,
-        imageUrl: dto.productImageUrl || undefined, // FavoriteItemDto has productImageUrl, maybe use a generic one for restaurant?
-        // For now, RestaurantListItem will use its default if imageUrl is undefined.
-        // You might need to fetch full restaurant details if you need more than name/id.
-        isFavorite: true, // It's a favorite by definition here
-        originalType: "restaurant",
-        // Mock or leave other RestaurantListItemProps as undefined if not in FavoriteItemDto
-        // cuisineType: dto.restaurantCuisineType, // If available
-        // rating: dto.restaurantRating, // If available
-      };
-    } else if (dto.productId && dto.productName) {
-      // For now, we are focusing on restaurants, but this is how you'd map products
-      // You'd likely use a different list item component for products
-      return {
-        id: dto.productId.toString(),
-        name: dto.productName, // This will be used by RestaurantListItem's name prop
-        imageUrl: dto.productImageUrl || undefined,
-        isFavorite: true,
-        originalType: "product",
-        productName: dto.productName,
-        productPrice: dto.productPrice || undefined,
-        productRestaurantName: dto.productRestaurantName || undefined,
-        // Map other relevant fields to RestaurantListItemProps or a dedicated ProductListItemProps
-        restaurantName: dto.restaurantName|| undefined, // So search can find it
-      };
-    }
-    return null; // Should not happen if DTO is valid
-  };
+  const mapFavoriteDtoToUIItem = useCallback(
+    (dto: FavoriteItemDto): UIFavoriteItem | null => {
+      if (dto.restaurantId && dto.restaurantName) {
+        return {
+          id: dto.restaurantId.toString(),
+          originalApiId: dto.restaurantId.toString(),
+          name: dto.restaurantName,
+          imageUrl: undefined,
+          isFavorite: true,
+          originalType: "restaurant",
+          deliveryTime: "20-30 min",
+          distance: "1-2 km",
+          isOpen: Math.random() > 0.2,
+        };
+      } else if (dto.productId && dto.productName) {
+        return {
+          id: dto.productId.toString(),
+          originalApiId: dto.productId.toString(),
+          name: dto.productName,
+          imageUrl: dto.productImageUrl || undefined,
+          isFavorite: true,
+          originalType: "product",
+          productName: dto.productName,
+          productPrice: dto.productPrice || undefined,
+          productRestaurantName: dto.productRestaurantName || undefined,
+        };
+      }
+      return null;
+    },
+    [],
+  );
 
   const fetchFavorites = useCallback(async () => {
     if (!isAuthenticated || !userToken) {
-      setAllFavorites([]);
-      setFilteredFavorites([]);
+      setAllRawFavorites([]);
       setIsLoading(false);
-      // setError("Zaloguj się, aby zobaczyć ulubione."); // Optional: show message or rely on screen protection
       return;
     }
-
     setIsLoading(true);
     setError(null);
     try {
       const favoriteDtos = await favoriteService.getUserFavorites(userToken);
-      const uiItems = favoriteDtos
-        .map(mapFavoriteDtoToUIItem)
-        .filter((item): item is UIFavoriteItem => item !== null); // Type guard
-
-      // For now, let's only show restaurant favorites using RestaurantListItem
-      const restaurantUiItems = uiItems.filter(item => item.originalType === 'restaurant');
-
-      setAllFavorites(restaurantUiItems);
-      setFilteredFavorites(restaurantUiItems); // Initialize filtered list
+      setAllRawFavorites(favoriteDtos);
     } catch (err: any) {
       console.error("FavoritesScreen: Błąd pobierania ulubionych:", err);
       setError(err.message || "Nie udało się wczytać ulubionych.");
-      setAllFavorites([]);
-      setFilteredFavorites([]);
+      setAllRawFavorites([]);
     } finally {
       setIsLoading(false);
     }
   }, [isAuthenticated, userToken]);
 
-  // Fetch favorites when the screen comes into focus or auth state changes
   useFocusEffect(
     useCallback(() => {
-      if (!isLoadingAuth) { // Ensure auth state is resolved
-        // console.log("FavoritesScreen focused, isAuthenticated:", isAuthenticated);
+      if (!isLoadingAuth) {
         fetchFavorites();
       }
-    }, [isLoadingAuth, fetchFavorites]) // fetchFavorites is memoized by useCallback
+    }, [isLoadingAuth, fetchFavorites]),
   );
 
-
-  // Filter logic
   useEffect(() => {
-    if (searchTerm === "") {
-      setFilteredFavorites(allFavorites);
+    if (isLoadingAuth || isLoading) {
+      setProcessedAndFilteredFavorites([]);
+      return;
+    }
+    if (!isAuthenticated) {
+      setProcessedAndFilteredFavorites([]);
+      return;
+    }
+
+    const uiItems = allRawFavorites
+      .map(mapFavoriteDtoToUIItem)
+      .filter((item): item is UIFavoriteItem => item !== null);
+
+    const typeFilteredItems = uiItems.filter(
+      (item) => item.originalType === activeFavoriteType,
+    );
+
+    if (searchTerm.trim() === "") {
+      setProcessedAndFilteredFavorites(typeFilteredItems);
     } else {
       const lowercasedTerm = searchTerm.toLowerCase();
-      const filtered = allFavorites.filter((fav) =>
-        fav.name.toLowerCase().includes(lowercasedTerm) ||
-        (fav.restaurantName && fav.restaurantName.toLowerCase().includes(lowercasedTerm))
-      );
-      setFilteredFavorites(filtered);
+      const searchedItems = typeFilteredItems.filter((fav) => {
+        const nameMatch = fav.name.toLowerCase().includes(lowercasedTerm);
+        let restaurantNameMatch = false;
+        if (fav.originalType === "product" && fav.productRestaurantName) {
+          restaurantNameMatch = fav.productRestaurantName
+            .toLowerCase()
+            .includes(lowercasedTerm);
+        }
+        return nameMatch || restaurantNameMatch;
+      });
+      setProcessedAndFilteredFavorites(searchedItems);
     }
-  }, [searchTerm, allFavorites]);
+  }, [
+    searchTerm,
+    allRawFavorites,
+    activeFavoriteType,
+    isLoadingAuth,
+    isLoading,
+    isAuthenticated,
+    mapFavoriteDtoToUIItem,
+  ]);
 
-  const handleToggleFavorite = async (
-    itemId: string, // This will be restaurantId or productId
-    newStatus: boolean,
-  ) => {
+  const handleToggleFavorite = async (itemToToggle: UIFavoriteItem) => {
     if (!isAuthenticated || !userToken) {
       setError("Zaloguj się, aby zarządzać ulubionymi.");
       return;
     }
 
-    const itemToToggle = allFavorites.find((fav) => fav.id === itemId);
-    if (!itemToToggle) return;
-
-    // Optimistic UI update
-    setAllFavorites((prev) =>
-      prev
-        .map((fav) =>
-          fav.id === itemId ? { ...fav, isFavorite: newStatus } : fav,
-        )
-        .filter(fav => newStatus ? true : fav.id !== itemId) // Remove if un-favorited
+    setProcessedAndFilteredFavorites((prev) =>
+      prev.filter(
+        (fav) =>
+          fav.originalApiId !== itemToToggle.originalApiId ||
+          fav.originalType !== itemToToggle.originalType,
+      ),
+    );
+    setAllRawFavorites((prev) =>
+      prev.filter((favDto) => {
+        if (itemToToggle.originalType === "restaurant")
+          return favDto.restaurantId?.toString() !== itemToToggle.originalApiId;
+        if (itemToToggle.originalType === "product")
+          return favDto.productId?.toString() !== itemToToggle.originalApiId;
+        return true;
+      }),
     );
 
-
     try {
-      const numericId = parseInt(itemId, 10);
+      const numericId = parseInt(itemToToggle.originalApiId, 10);
       if (itemToToggle.originalType === "restaurant") {
-        if (newStatus) {
-          // This case shouldn't happen if it's already a favorite, but for robustness:
-          await favoriteService.addRestaurantFavorite(numericId, userToken);
-        } else {
-          await favoriteService.removeRestaurantFavorite(numericId, userToken);
-        }
+        await favoriteService.removeRestaurantFavorite(numericId, userToken);
       } else if (itemToToggle.originalType === "product") {
-        // Add product favorite logic here if needed
-        // if (newStatus) {
-        //   await favoriteService.addProductFavorite(numericId, userToken);
-        // } else {
-        //   await favoriteService.removeProductFavorite(numericId, userToken);
-        // }
+        await favoriteService.removeProductFavorite(numericId, userToken);
       }
-      // Optionally re-fetch after successful toggle to ensure data consistency
-      // await fetchFavorites();
     } catch (apiError: any) {
-      console.error("FavoritesScreen: Błąd API przy zmianie ulubionych:", apiError);
-      setError(`Błąd aktualizacji ulubionych: ${apiError.message}`);
-      // Revert optimistic update by re-fetching
+      console.error(
+        "FavoritesScreen: Błąd API przy usuwaniu ulubionego:",
+        apiError,
+      );
+      setError(`Błąd usuwania ulubionego: ${apiError.message}`);
       fetchFavorites();
     }
   };
 
-  const handleRestaurantPress = (restaurantId: string) => {
-    // Assuming restaurantId is always a string here
-    router.push(`/restaurant/${restaurantId}` as any);
+  const handleItemPress = (item: UIFavoriteItem) => {
+    if (item.originalType === "restaurant") {
+      router.push(`/restaurant/${item.originalApiId}` as any);
+    } else if (item.originalType === "product") {
+      const originalDto = allRawFavorites.find(
+        (dto) => dto.productId?.toString() === item.originalApiId,
+      );
+      if (originalDto?.productRestaurantName && originalDto.restaurantId) {
+        router.push(`/restaurant/${originalDto.restaurantId}` as any);
+      } else {
+        Alert.alert("Info", "Szczegóły produktu nie są jeszcze dostępne.");
+      }
+    }
   };
 
   const renderFavoriteItem: ListRenderItem<UIFavoriteItem> = ({ item }) => {
-    if (item.originalType === "restaurant") {
-      return (
-        <RestaurantListItem
-          item={item} // item is already RestaurantListItemProps
-          onPress={() => handleRestaurantPress(item.id)}
-          onToggleFavorite={handleToggleFavorite}
-        />
-      );
-    }
-    // Add rendering for Product favorites if you have a ProductListItem
-    // else if (item.originalType === "product") {
-    //   return <ProductListItem item={item} ... />;
-    // }
-    return null;
+    const displayItemProps: RestaurantListItemProps = {
+      id: item.id,
+      name: item.name,
+      imageUrl: item.imageUrl,
+      isFavorite: true,
+      deliveryTime: item.deliveryTime,
+      distance: item.distance,
+      isOpen: item.isOpen,
+    };
+
+    return (
+      <RestaurantListItem
+        item={displayItemProps}
+        onPress={() => handleItemPress(item)}
+        onToggleFavorite={() => handleToggleFavorite(item)}
+      />
+    );
   };
 
-  const clearSearch = () => {
-    setSearchTerm("");
-    Keyboard.dismiss();
-  };
+  const clearSearch = () => setSearchTerm("");
 
   if (isLoadingAuth) {
     return (
       <View style={styles.centeredContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Sprawdzanie autoryzacji...</Text>
+        <Text style={styles.loadingText}>Autoryzacja...</Text>
       </View>
     );
   }
-
   if (!isAuthenticated) {
     return (
       <View style={styles.centeredContainer}>
         <Stack.Screen options={{ title: "Ulubione" }} />
         <HeartOff size={48} color={COLORS.textSecondary} />
-        <Text style={styles.infoText}>Zaloguj się, aby zobaczyć swoje ulubione.</Text>
-        <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login')}>
-            <Text style={styles.loginButtonText}>Zaloguj się</Text>
+        <Text style={styles.infoText}>
+          Zaloguj się, aby zobaczyć swoje ulubione.
+        </Text>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => router.push("/login")}
+        >
+          <Text style={styles.loginButtonText}>Zaloguj się</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-
   return (
     <View style={styles.screenContainer}>
       <Stack.Screen options={{ title: "Moje Ulubione" }} />
+
+      <View style={styles.segmentedControlContainer}>
+        <TouchableOpacity
+          style={[
+            styles.segmentButton,
+            activeFavoriteType === "restaurant" && styles.segmentButtonActive,
+          ]}
+          onPress={() => setActiveFavoriteType("restaurant")}
+        >
+          <Store
+            size={18}
+            color={
+              activeFavoriteType === "restaurant"
+                ? COLORS.white
+                : COLORS.primary
+            }
+            style={styles.segmentIcon}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              activeFavoriteType === "restaurant" && styles.segmentTextActive,
+            ]}
+          >
+            Restauracje
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.segmentButton,
+            activeFavoriteType === "product" && styles.segmentButtonActive,
+          ]}
+          onPress={() => setActiveFavoriteType("product")}
+        >
+          <Utensils // Changed from Package
+            size={18}
+            color={
+              activeFavoriteType === "product" ? COLORS.white : COLORS.primary
+            }
+            style={styles.segmentIcon}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              activeFavoriteType === "product" && styles.segmentTextActive,
+            ]}
+          >
+            Dania
+          </Text>
+          {/* Changed from Produkty */}
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.searchContainer}>
         <View style={styles.searchIconContainer}>
@@ -246,14 +334,17 @@ export default function FavoritesScreen() {
         </View>
         <TextInput
           style={styles.searchInput}
-          placeholder="Szukaj w ulubionych..."
-          placeholderTextColor={COLORS.textSecondary}
+          placeholder={`Szukaj w ulubionych ${
+            activeFavoriteType === "restaurant" ? "restauracjach" : "daniach" // Changed from produktach
+          }...`}
           value={searchTerm}
           onChangeText={setSearchTerm}
-          returnKeyType="search"
         />
         {searchTerm.length > 0 && (
-          <TouchableOpacity onPress={clearSearch} style={styles.clearSearchButton}>
+          <TouchableOpacity
+            onPress={clearSearch}
+            style={styles.clearSearchButton}
+          >
             <XCircle size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
         )}
@@ -262,35 +353,46 @@ export default function FavoritesScreen() {
       {isLoading && (
         <View style={styles.centeredContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Ładowanie ulubionych...</Text>
+          <Text style={styles.loadingText}>Ładowanie...</Text>
         </View>
       )}
-
       {!isLoading && error && (
         <View style={styles.centeredContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchFavorites}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={fetchFavorites}
+          >
             <Text style={styles.retryButtonText}>Spróbuj ponownie</Text>
           </TouchableOpacity>
         </View>
       )}
-
-      {!isLoading && !error && filteredFavorites.length === 0 && (
-        <View style={styles.centeredContainer}>
-          <HeartOff size={48} color={COLORS.textSecondary} />
-          <Text style={styles.infoText}>
-            {searchTerm ? "Brak pasujących ulubionych." : "Nie masz jeszcze żadnych ulubionych."}
-          </Text>
-        </View>
-      )}
-
-      {!isLoading && !error && filteredFavorites.length > 0 && (
+      {!isLoading &&
+        !error &&
+        processedAndFilteredFavorites.length === 0 && (
+          <View style={styles.centeredContainer}>
+            <HeartOff size={48} color={COLORS.textSecondary} />
+            <Text style={styles.infoText}>
+              {searchTerm
+                ? `Brak pasujących ulubionych ${
+                    activeFavoriteType === "restaurant"
+                      ? "restauracji"
+                      : "dań" // Changed from produktów
+                  }.`
+                : `Nie masz jeszcze żadnych ulubionych ${
+                    activeFavoriteType === "restaurant"
+                      ? "restauracji"
+                      : "dań" // Changed from produktów
+                  }.`}
+            </Text>
+          </View>
+        )}
+      {!isLoading && !error && processedAndFilteredFavorites.length > 0 && (
         <FlatList
-          data={filteredFavorites}
+          data={processedAndFilteredFavorites}
           renderItem={renderFavoriteItem}
-          keyExtractor={(item) => `${item.originalType}-${item.id}`} // Ensure unique keys
+          keyExtractor={(item) => `${item.originalType}-${item.originalApiId}`}
           contentContainerStyle={styles.listContentContainer}
-          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -298,14 +400,44 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
-  screenContainer: {
+  screenContainer: { flex: 1, backgroundColor: COLORS.background },
+  segmentedControlContainer: {
+    flexDirection: "row",
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: "hidden",
+    ...SHADOWS.small,
+  },
+  segmentButton: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    paddingVertical: SPACING.sm + 2,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  segmentButtonActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  segmentIcon: {
+    marginRight: SPACING.xs,
+  },
+  segmentText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+  segmentTextActive: {
+    color: COLORS.white,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.cardBackground, // Or a light grey
+    backgroundColor: COLORS.cardBackground,
     borderRadius: BORDER_RADIUS.lg,
     marginHorizontal: SPACING.md,
     marginTop: SPACING.md,
@@ -314,21 +446,17 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
     height: 48,
   },
-  searchIconContainer: {
-    paddingHorizontal: SPACING.sm,
-  },
+  searchIconContainer: { paddingHorizontal: SPACING.sm },
   searchInput: {
     flex: 1,
     fontSize: FONT_SIZE.md,
     color: COLORS.textPrimary,
     height: "100%",
-    paddingVertical: Platform.OS === 'ios' ? SPACING.sm : 0, // Adjust padding for Android
+    paddingVertical: Platform.OS === "ios" ? SPACING.sm : 0,
   },
-  clearSearchButton: {
-    padding: SPACING.sm,
-  },
+  clearSearchButton: { padding: SPACING.sm },
   listContentContainer: {
-    paddingHorizontal: SPACING.md / 2, // To align with RestaurantListItem's internal horizontal margin
+    paddingHorizontal: SPACING.md / 2,
     paddingBottom: SPACING.lg,
   },
   centeredContainer: {
@@ -360,6 +488,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     borderRadius: BORDER_RADIUS.md,
     ...SHADOWS.small,
+    marginTop: SPACING.md,
   },
   retryButtonText: {
     color: COLORS.white,

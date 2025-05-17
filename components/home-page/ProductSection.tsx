@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ListRenderItem, ActivityIndicator, ImageSourcePropType, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ListRenderItem, ActivityIndicator, ImageSourcePropType, StyleSheet, ViewStyle } from 'react-native';
 import { SectionHeader } from './section-header';
 import { ProductItem } from './ProductItem';
 import { COLORS } from './constants';
@@ -71,7 +71,12 @@ const getProductImageSource = (apiProductData?: any): ImageSourcePropType => {
 
 interface ProductsSectionProps {
     selectedCategoryId: string | null;
-}
+    title?: string; // New: Optional title for the section
+    maxItems?: number; // New: Max items to display
+    horizontal?: boolean; // New: For horizontal layout
+    itemStyle?: ViewStyle; // New: Custom style for each product item
+    // You might add a prop like `fetchMode: 'category' | 'popular'` later if needed
+  }
 
 export function ProductsSection({ selectedCategoryId }: ProductsSectionProps) {
     const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -218,9 +223,7 @@ export function ProductsSection({ selectedCategoryId }: ProductsSectionProps) {
 
     return (
         <View style={{ marginBottom: 32 }}>
-            <SectionHeader title={selectedCategoryId ? "Produkty" : "Wybierz kategorię"} />
             {renderListStatus()}
-            {/* Renderuj listę tylko jeśli nie ładujemy, wybrano kategorię i są jakieś przefiltrowane produkty */}
             {!loadingProducts && !loadingRestaurants && selectedCategoryId && filteredProducts.length > 0 && (
                 <FlatList
                     data={filteredProducts}

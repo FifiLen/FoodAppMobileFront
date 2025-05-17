@@ -7,6 +7,7 @@ import { SectionHeader } from './section-header';
 import { CategoryItem } from './category-item';
 import { COLORS } from './constants';
 import { API_URL } from '@/app/constants';
+import { router } from 'expo-router';
 
 // Upewnij się, że ten adres jest poprawny i wskazuje na Twój backend
 // Jeśli Docker mapuje port 8080 kontenera na 8081 hosta, to jest OK.
@@ -96,6 +97,10 @@ export function CategoriesSection({ activeCategoryId, onCategorySelect }: Catego
             onPress={() => handlePressCategory(item.id)}
         />
     );
+    const handleViewAllCategories = () => {
+        console.log("CategoriesSection: Nawigacja do wszystkich kategorii.");
+        router.push('/categories'); // Navigate to the new screen
+    };
 
     const renderListStatus = () => {
         if (loadingCats) {
@@ -118,7 +123,11 @@ export function CategoriesSection({ activeCategoryId, onCategorySelect }: Catego
 
     return (
         <View style={{ marginBottom: 32 }}>
-            <SectionHeader title="Kategorie" />
+            <SectionHeader 
+                title="Kategorie" 
+                onActionPress={handleViewAllCategories}
+                showActionButton={!loadingCats && categories.length > 0}
+            />
             {renderListStatus()}
             {!loadingCats && categories.length > 0 && (
                 <FlatList

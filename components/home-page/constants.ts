@@ -1,50 +1,54 @@
-// Paleta kolorów dla aplikacji FoodApp
-// Zoptymalizowana dla lepszej czytelności i spójności wizualnej
+// frontend/components/home-page/constants.ts (or wherever your constants are)
 
 export const COLORS = {
     // Kolory podstawowe
-    primary: "#A3D69D", // Główny zielony kolor marki
-    primaryLight: "#C5E8C1", // Jaśniejsza wersja koloru primary
-    primaryDark: "#82B47C", // Ciemniejsza wersja koloru primary
+    primary: "#A3D69D",
+    primaryLight: "#C5E8C1",
+    primaryDark: "#82B47C",
 
     // Kolory akcentujące
-    secondary: "#FFE566", // Żółty akcent
-    secondaryLight: "#FFF0A3", // Jaśniejsza wersja koloru secondary
-    accent: "#5F7161", // Ciemniejszy zielony/szary dla akcentów
+    secondary: "#FFE566",
+    secondaryLight: "#FFF0A3",
+    accent: "#5F7161",
 
     // Tła i karty
-    background: "#F8F8F8", // Jasne tło aplikacji
-    cardBackground: "#FFFFFF", // Białe tło kart i elementów
-    surfaceVariant: "#F2F7F2", // Alternatywne tło dla sekcji
+    background: "#F8F8F8",
+    cardBackground: "#FFFFFF",
+    surfaceVariant: "#F2F7F2",
+    // NOWE: Dodane brakujące kolory tła
+    secondaryBackground: "#E8F5E9", // Jaśniejszy, stonowany zielony, pasujący do primary
+    backgroundSlightlyDarker: "#F0F0F0", // Trochę ciemniejszy niż główny background
 
     // Typografia
-    textPrimary: "#333333", // Główny kolor tekstu
-    textSecondary: "#666666", // Drugorzędny kolor tekstu
-    textLight: "#999999", // Jasnoszary tekst dla mniej ważnych informacji
-    textOnPrimary: "#FFFFFF", // Tekst na tle primary
+    textPrimary: "#333333",
+    textSecondary: "#666666",
+    textLight: "#999999",
+    textOnPrimary: "#FFFFFF",
 
     // Granice i cienie
-    border: "#EEEEEE", // Kolor granic i separatorów
-    shadow: "rgba(0, 0, 0, 0.1)", // Kolor cieni
+    border: "#EEEEEE",
+    shadow: "rgba(0, 0, 0, 0.1)",
 
     // Stany i informacje
-    success: "#4CAF50", // Zielony dla powodzeń (zbliżony do primary, ale bardziej standardowy)
-    danger: "#E74C3C", // Czerwony dla błędów i alertów
-    warning: "#F39C12", // Pomarańczowy dla ostrzeżeń
-    info: "#3498DB", // Niebieski dla informacji
+    success: "#4CAF50",
+    danger: "#E74C3C",
+    // NOWE: Dodany brakujący kolor dangerLight
+    dangerLight: "#FDECEA", // Jasnoczerwony dla tła błędów
+    warning: "#F39C12",
+    info: "#3498DB",
 
     // Kolory pomocnicze
-    white: "#FFFFFF", // Czysty biały
-    black: "#000000", // Czysty czarny
-    transparent: "transparent", // Przezroczysty
+    white: "#FFFFFF",
+    black: "#000000",
+    transparent: "transparent",
 
     // Kolory dla kategorii jedzenia (opcjonalnie)
-    categoryPizza: "#FF9F43", // Pomarańczowy dla pizzy
-    categoryBurger: "#FC5C65", // Czerwonawy dla burgerów
-    categorySushi: "#2C3E50", // Ciemny dla sushi
-    categoryVegan: "#26de81", // Zielony dla wegańskich
-    categoryDessert: "#D980FA", // Fioletowy dla deserów
-}
+    categoryPizza: "#FF9F43",
+    categoryBurger: "#FC5C65",
+    categorySushi: "#2C3E50",
+    categoryVegan: "#26de81",
+    categoryDessert: "#D980FA",
+};
 
 // Stałe dla spójnego odstępu
 export const SPACING = {
@@ -54,7 +58,7 @@ export const SPACING = {
     lg: 24,
     xl: 32,
     xxl: 48,
-}
+};
 
 // Stałe dla spójnych rozmiarów czcionek
 export const FONT_SIZE = {
@@ -65,7 +69,7 @@ export const FONT_SIZE = {
     xl: 20,
     xxl: 24,
     xxxl: 32,
-}
+};
 
 // Stałe dla zaokrągleń
 export const BORDER_RADIUS = {
@@ -74,8 +78,8 @@ export const BORDER_RADIUS = {
     md: 12,
     lg: 16,
     xl: 24,
-    round: 9999, // Dla okrągłych elementów
-}
+    round: 9999,
+};
 
 // Stałe dla cieni
 export const SHADOWS = {
@@ -100,4 +104,4 @@ export const SHADOWS = {
         shadowRadius: 16,
         elevation: 8,
     },
-}
+};

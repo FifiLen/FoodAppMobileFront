@@ -47,6 +47,11 @@ export default function ModernFoodApp() {
         alert("Nawigacja do pełnej listy restauracji (TODO)")
     }
 
+    const handleBannerPress = () => {
+        console.log("Promotional banner pressed. Navigating to welcome offer screen.");
+        router.push("/welcome-offer"); // Or your chosen route name
+    };
+
     return (
         <View style={{ flex: 1, backgroundColor: COLORS.background }}>
             {/* Enhanced Animated Header */}
@@ -259,7 +264,19 @@ export default function ModernFoodApp() {
                                             alignSelf: "flex-start",
                                         }}
                                     >
-                                        <Text style={{ color: COLORS.primary, fontWeight: "700" }}>Zamów teraz</Text>
+                                       <TouchableOpacity onPress={handleBannerPress}> {/* Wrap with TouchableOpacity */}
+                                        <View
+                                            style={{
+                                                backgroundColor: "#fff",
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 16,
+                                                borderRadius: 8,
+                                                alignSelf: "flex-start", // Keeps its original alignment
+                                            }}
+                                        >
+                                            <Text style={{ color: COLORS.primary, fontWeight: "700" }}>Zamów teraz</Text>
+                                        </View>
+                                    </TouchableOpacity>
                                     </View>
                                 </View>
                                 <View style={{ width: 80, height: 80, marginLeft: 10 }}>
