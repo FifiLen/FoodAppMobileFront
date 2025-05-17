@@ -1,4 +1,3 @@
-// frontend/app/_layout.tsx
 import React, { useEffect, useRef } from "react";
 import { Slot, useRouter, usePathname, useSegments, Stack } from "expo-router";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";

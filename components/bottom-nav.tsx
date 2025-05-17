@@ -1,8 +1,8 @@
 // frontend/components/BottomNavigation.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
-import { Home, Search, ShoppingBag, Heart, User as UserIcon } from "lucide-react-native";
-import { COLORS } from './home-page/constants';
+import { Home, Store, ShoppingBag, Heart, User as UserIcon } from "lucide-react-native"; // Assuming Store is your chosen icon
+import { COLORS } from './home-page/constants'; // Ensure this path is correct
 import { useRouter, usePathname } from 'expo-router';
 
 export function BottomNavigation() {
@@ -10,11 +10,12 @@ export function BottomNavigation() {
     const pathname = usePathname();
 
     const navItems = [
-        { id: 'glowna', label: 'Główna', icon: Home, path: '/(tabs)/' }, // Zmieniono label i id
-        { id: 'szukaj', label: 'Szukaj', icon: Search, path: '/(tabs)/search' }, // Zmieniono label i id
-        { id: 'koszyk', label: 'Koszyk', icon: ShoppingBag, path: '/(tabs)/cart', isCentral: true }, // Zmieniono label i id
-        { id: 'ulubione', label: 'Ulubione', icon: Heart, path: '/(tabs)/favorites' }, // Zmieniono label i id
-        { id: 'konto', label: 'Konto', icon: UserIcon, path: '/(tabs)/profile' }, // Zmieniono label i id
+        { id: 'glowna', label: 'Główna', icon: Home, path: '/(tabs)/' },
+        // ***** MODIFIED LINE *****
+        { id: 'restauracje', label: 'Restauracje', icon: Store, path: '/(tabs)/restaurants' },
+        { id: 'koszyk', label: 'Koszyk', icon: ShoppingBag, path: '/(tabs)/cart', isCentral: true },
+        { id: 'ulubione', label: 'Ulubione', icon: Heart, path: '/(tabs)/favorites' },
+        { id: 'konto', label: 'Konto', icon: UserIcon, path: '/(tabs)/profile' },
     ];
 
     const isActive = (itemPath: string) => {
@@ -31,6 +32,7 @@ export function BottomNavigation() {
         <View style={styles.container}>
             {navItems.map((item) => {
                 const active = isActive(item.path);
+                const IconComponent = item.icon;
                 const iconColor = active ? COLORS.accent : COLORS.textSecondary;
                 const textColor = active ? COLORS.accent : COLORS.textSecondary;
 
@@ -52,7 +54,7 @@ export function BottomNavigation() {
                         style={styles.navItem}
                         onPress={() => router.push(item.path as any)}
                     >
-                        <item.icon size={24} color={iconColor} />
+                        <IconComponent size={24} color={iconColor} />
                         <Text style={[styles.navText, { color: textColor, fontWeight: active ? "600" : "normal" }]}>
                             {item.label}
                         </Text>

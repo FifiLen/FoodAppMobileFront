@@ -201,15 +201,19 @@ export interface ProductSummaryDto { // From RestaurantDetailDto
 
 
 // --- Restaurant DTOs ---
-export interface RestaurantDto { // Basic listing DTO
+export interface RestaurantDto { // For GET /api/restaurants (list view)
   id: number;
   name: string | null;
-  // Consider adding common fields often needed in listings if API provides them
-  // imageUrl?: string;
-  // averageRating?: number;
-  // cuisineType?: string;
+  imageUrl?: string | null;      // Often included in list views
+  averageRating?: number | null; // Often included in list views
+  // If your API sends categoryName or a simple list of category names directly, add them:
+  categoryName?: string | null; // If only one primary category is sent
+  categories?: { id: number; name: string | null; }[] | null; // If multiple categories are sent
+  // Add any other fields your ACTUAL API list endpoint returns for restaurants
+  deliveryTime?: string | null; // If API provides this
+  distance?: string | null;     // If API provides this
+  priceRange?:string | null;
 }
-
 export interface RestaurantDetailDto {
   id: number;
   name: string | null;

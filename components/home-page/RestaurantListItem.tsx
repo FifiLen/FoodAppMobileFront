@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-// ... other imports (StyleSheet, ImageBackground, etc.)
 import {
   View,
   Text,
@@ -11,40 +10,41 @@ import {
   ImageBackground,
   type ImageSourcePropType,
   ActivityIndicator,
+  StyleProp,   // Import StyleProp
+  ViewStyle,    // Import ViewStyle
 } from "react-native";
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOWS } from "./constants";
 import { Star, Clock, MapPin as LocationIcon, Heart } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-const DEFAULT_RESTAURANT_IMAGE = require("../../assets/images/placeholder-restaurant.png");
+const DEFAULT_RESTAURANT_IMAGE = require("../../assets/images/placeholder-restaurant.png"); // Ensure this path is correct
 
-// Interface for the DATA of a single restaurant item
-// This is what the parent component (e.g., FeaturedRestaurantsSection) will map its API data to.
-export interface RestaurantListItemProps { // <<< THIS IS THE KEY EXPORTED TYPE FOR THE ITEM DATA
+export interface RestaurantListItemProps {
   id: string;
   name: string;
-  imageUrl?: string;
-  cuisineType?: string;
-  rating?: number;
-  deliveryTime?: string;
-  distance?: string;
-  isOpen?: boolean;
-  promoLabel?: string;
-  isFavorite?: boolean;
+  imageUrl?: string | null; // Allow null
+  cuisineType?: string | null; // Allow null
+  rating?: number | null; // Allow null
+  deliveryTime?: string | null; // Allow null
+  distance?: string | null; // Allow null
+  isOpen?: boolean | null; // Allow null
+  promoLabel?: string | null; // Allow null
+  isFavorite?: boolean | null; // Allow null
 }
 
-// Interface for the PROPS of the RestaurantListItem COMPONENT
 interface RestaurantListItemComponentProps {
-  item: RestaurantListItemProps; // <<< Uses the exported type above
-  onPress: () => void;
+  item: RestaurantListItemProps;
+  onPress: (restaurantId: string) => void; // Pass restaurantId for clarity
   onToggleFavorite?: (itemId: string, newStatus: boolean) => Promise<void> | void;
+  style?: StyleProp<ViewStyle>; // <<< NEW: Optional style prop for the container
 }
 
 export const RestaurantListItem = ({
   item,
   onPress,
   onToggleFavorite,
-}: RestaurantListItemComponentProps) => { // <<< Uses the component's props type
+  style, // <<< NEW: Destructure style prop
+}: RestaurantListItemComponentProps) => {
   const imageSource: ImageSourcePropType =
     item.imageUrl && item.imageUrl.startsWith("http")
       ? { uri: item.imageUrl }
@@ -68,24 +68,22 @@ export const RestaurantListItem = ({
     }
     setIsLoadingFavorite(true);
     const newStatus = !isFavoriteLocal;
+    // Optimistically update UI, then call prop
     setIsFavoriteLocal(newStatus);
     try {
       await onToggleFavorite(item.id, newStatus);
     } catch (error) {
       console.error("RestaurantListItem: Failed to toggle favorite via prop", error);
-      setIsFavoriteLocal(!newStatus);
+      setIsFavoriteLocal(!newStatus); // Revert on error
     } finally {
       setIsLoadingFavorite(false);
     }
   };
 
-  // ... rest of your component's rendering logic using item.xxx ...
-  // (Make sure to use item.isOpen, item.promoLabel, item.deliveryTime, item.distance directly)
-
   return (
     <TouchableOpacity
-      style={styles.container}
-      onPress={onPress}
+      style={[styles.container, style]} // <<< MODIFIED: Apply the style prop
+      onPress={() => onPress(item.id)}
       activeOpacity={0.85}
     >
       <ImageBackground
@@ -101,14 +99,14 @@ export const RestaurantListItem = ({
         >
           <View style={styles.topContainer}>
             <View style={styles.topLeftBadges}>
-              {item.isOpen !== undefined && (
+              {item.isOpen !== undefined && item.isOpen !== null && ( // Check for null as well
                 <View
                   style={[
                     styles.statusBadge,
                     {
                       backgroundColor: item.isOpen
-                        ? COLORS.success || "green"
-                        : COLORS.danger || "red",
+                        ? COLORS.success
+                        : COLORS.danger,
                     },
                   ]}
                 >
@@ -187,14 +185,14 @@ export const RestaurantListItem = ({
   );
 };
 
-// Styles (ensure these are complete and correct)
 const styles = StyleSheet.create({
-  container: {
+  container: { // Default style
     height: 180,
     borderRadius: BORDER_RADIUS.lg,
-    marginVertical: SPACING.sm,
-    marginHorizontal: SPACING.md,
+    marginVertical: SPACING.sm, // Default vertical margin
+    marginHorizontal: SPACING.md, // Default horizontal margin
     overflow: "hidden",
+    backgroundColor: COLORS.cardBackground, // Added for shadow to work on Android if image fails
     ...SHADOWS.medium,
   },
   imageBackground: {
@@ -202,14 +200,10 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   imageStyle: {
-    borderRadius: BORDER_RADIUS.lg,
+    // borderRadius: BORDER_RADIUS.lg, // Already applied by container's overflow:hidden
   },
   gradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+    flex: 1, // Ensure gradient fills the ImageBackground
     justifyContent: "space-between",
     padding: SPACING.md,
   },
@@ -217,38 +211,39 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    zIndex: 1,
   },
   topLeftBadges: {
     flexDirection: "row",
+    flexWrap: 'wrap', // Allow badges to wrap if too many
     gap: SPACING.xs,
   },
   statusBadge: {
     paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs / 2,
+    paddingVertical: SPACING.xs / 2 + 1,
     borderRadius: BORDER_RADIUS.sm,
     alignSelf: "flex-start",
   },
   statusText: {
     color: COLORS.white,
-    fontSize: FONT_SIZE.xs,
+    fontSize: FONT_SIZE.xs -1, // Slightly smaller
     fontWeight: "600",
   },
   promoBadge: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs / 2,
+    paddingVertical: SPACING.xs / 2 + 1,
     borderRadius: BORDER_RADIUS.sm,
     alignSelf: "flex-start",
   },
   promoText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.xs,
+    color: COLORS.textOnPrimary || COLORS.white, // Use textOnPrimary if defined
+    fontSize: FONT_SIZE.xs -1, // Slightly smaller
     fontWeight: "600",
   },
   favoriteButton: {
     padding: SPACING.xs,
-    borderRadius: BORDER_RADIUS.sm,
+    // backgroundColor: 'rgba(0,0,0,0.3)', // Optional: slight background for better visibility
+    borderRadius: BORDER_RADIUS.round,
   },
   contentContainer: {
     justifyContent: "flex-end",
@@ -274,15 +269,16 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: SPACING.xs,
+    flexWrap: "wrap", // Allow badges to wrap
+    alignItems: 'center',
+    gap: SPACING.sm, // Use gap for spacing between badges
   },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 229, 102, 0.85)",
+    backgroundColor: "rgba(255, 229, 102, 0.9)", // Slightly more opaque
     paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs / 2,
+    paddingVertical: SPACING.xs / 2 + 1,
     borderRadius: BORDER_RADIUS.sm,
   },
   ratingText: {
@@ -294,9 +290,9 @@ const styles = StyleSheet.create({
   detailBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.55)", // Slightly more opaque
     paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs / 2,
+    paddingVertical: SPACING.xs / 2 + 1,
     borderRadius: BORDER_RADIUS.sm,
   },
   detailText: {
