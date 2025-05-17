@@ -6,16 +6,16 @@ import { View, Text, FlatList, ListRenderItem, ActivityIndicator } from 'react-n
 import { SectionHeader } from './section-header';
 import { CategoryItem } from './category-item';
 import { COLORS } from './constants';
+import { API_URL } from '@/app/constants';
 
 // Upewnij się, że ten adres jest poprawny i wskazuje na Twój backend
 // Jeśli Docker mapuje port 8080 kontenera na 8081 hosta, to jest OK.
-const API_BASE_URL = "http://192.168.0.13:8081";
 
 const CategoryApi = {
     list: async (): Promise<any> => {
         try {
             // ZMIANA: Nowy endpoint dla kategorii
-            const response = await fetch(`${API_BASE_URL}/api/categories`);
+            const response = await fetch(`${API_URL}/api/categories`);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("CategoryApi.list: Błąd odpowiedzi serwera:", response.status, errorText);

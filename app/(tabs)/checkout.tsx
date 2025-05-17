@@ -18,6 +18,7 @@ import { COLORS } from '@/components/home-page/constants';
 import { ArrowLeft, CreditCard, MapPin, CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { API_URL } from '../constants';
 
 // Przykładowe typy dla adresów i metod płatności (do rozbudowy)
 interface Address {
@@ -53,7 +54,6 @@ export default function CheckoutScreen() {
         { id: "cash_on_delivery", name: "Płatność przy odbiorze" },
     ]);
 
-    const API_BASE_URL = "http://192.168.0.13:8081";
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -102,7 +102,7 @@ export default function CheckoutScreen() {
         try {
             if (!userToken) throw new Error("Brak tokenu autoryzacyjnego.");
 
-            const orderResponse = await fetch(`${API_BASE_URL}/api/orders`, {
+            const orderResponse = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userToken}` },
                 body: JSON.stringify(orderPayload),
@@ -123,7 +123,7 @@ export default function CheckoutScreen() {
                     PaymentMethod: selectedPaymentMethod, // Użyj wybranej metody
                 };
                 console.log("CheckoutScreen: Tworzenie płatności:", paymentPayload);
-                const paymentResponse = await fetch(`${API_BASE_URL}/api/payments`, {
+                const paymentResponse = await fetch(`${API_URL}/api/payments`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userToken}` },
                     body: JSON.stringify(paymentPayload),

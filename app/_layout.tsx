@@ -1,6 +1,6 @@
 // frontend/app/_layout.tsx
 import React, { useEffect, useRef } from "react";
-import { Slot, useRouter, usePathname, useSegments } from "expo-router";
+import { Slot, useRouter, usePathname, useSegments, Stack } from "expo-router";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";

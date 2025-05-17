@@ -19,8 +19,8 @@ import { COLORS } from '@/components/home-page/constants'; // Dostosuj ścieżk�
 import { ArrowLeft, Star, MapPin, Clock } from 'lucide-react-native';
 // Zaimportujemy ProductItem do wyświetlania produktów restauracji
 import { ProductItem } from '@/components/home-page/ProductItem'; // Dostosuj ścieżkę
+import { API_URL } from '../constants';
 
-const API_BASE_URL = "http://192.168.0.13:8081";
 
 // Interfejs dla danych pojedynczej restauracji (rozszerzony)
 interface RestaurantDetails {
@@ -81,7 +81,7 @@ export default function RestaurantDetailScreen() {
             setError(null);
             try {
                 // 1. Pobierz szczegóły restauracji
-                const restaurantResponse = await fetch(`${API_BASE_URL}/api/restaurants/${restaurantId}`);
+                const restaurantResponse = await fetch(`${API_URL}/api/restaurants/${restaurantId}`);
                 if (!restaurantResponse.ok) {
                     throw new Error(`Nie udało się pobrać danych restauracji (status: ${restaurantResponse.status})`);
                 }
@@ -99,7 +99,7 @@ export default function RestaurantDetailScreen() {
                 });
 
                 // 2. Pobierz produkty dla tej restauracji
-                const productsResponse = await fetch(`${API_BASE_URL}/api/products?restaurantId=${restaurantId}`);
+                const productsResponse = await fetch(`${API_URL}/api/products?restaurantId=${restaurantId}`);
                 if (!productsResponse.ok) {
                     throw new Error(`Nie udało się pobrać produktów restauracji (status: ${productsResponse.status})`);
                 }

@@ -144,7 +144,7 @@ export interface FavoriteCreatePayload {
 }
 
 
-const BASE_URL = "http://192.168.0.13:8081";
+const BASE_URL = "http://localhost:8081";
 
 async function handleResponse<T>(res: Response): Promise<T> {
     if (res.status === 204) {

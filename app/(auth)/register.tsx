@@ -15,8 +15,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { COLORS } from "../../components/home-page/constants";
+import { API_URL } from "../constants";
 
-const API_URL = "http://192.168.0.13:8081"; // UPEWNIJ SIĘ, ŻE TO POPRAWNY ADRES TWOJEGO BACKENDU
 
 interface ApiError {
     code?: string;
@@ -57,7 +57,7 @@ export default function RegistrationScreen() {
         setError(null);
 
         try {
-            const response = await fetch(`${API_URL}/api/Auth/register`, {
+            const response = await fetch(`${API_URL}/api/AuthControler/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

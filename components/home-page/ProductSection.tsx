@@ -6,13 +6,12 @@ import { View, Text, FlatList, ListRenderItem, ActivityIndicator, ImageSourcePro
 import { SectionHeader } from './section-header';
 import { ProductItem } from './ProductItem';
 import { COLORS } from './constants';
-
-const API_BASE_URL = "http://192.168.0.13:8081";
+import { API_URL } from '@/app/constants';
 
 const ProductApi = {
     listAll: async (): Promise<any> => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/products`);
+            const response = await fetch(`${API_URL}/api/products`);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("ProductApi.listAll: Błąd odpowiedzi serwera:", response.status, errorText);
@@ -29,7 +28,7 @@ const ProductApi = {
 const RestaurantApi = {
     listAll: async (): Promise<any> => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/restaurants`);
+            const response = await fetch(`${API_URL}/api/restaurants`);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("RestaurantApi.listAll: Błąd odpowiedzi serwera restauracji:", response.status, errorText);

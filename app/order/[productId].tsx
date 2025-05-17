@@ -19,9 +19,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '@/components/home-page/constants'; // Dostosuj ścieżkę
 import { ArrowLeft, ShoppingCart } from 'lucide-react-native'; // Ikony
 import { SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context'; // Dla lepszej obsługi
+import { API_URL } from '../constants';
 
-// UPEWNIJ SIĘ, ŻE TEN ADRES JEST POPRAWNY I WSKAZUJE NA TWÓJ BACKEND
-const API_BASE_URL = "http://192.168.0.13:8081";
 
 // Interfejs dla pełnych danych produktu (może być bardziej szczegółowy niż w ProductItem)
 interface OrderProductDetails {
@@ -60,7 +59,7 @@ export default function OrderScreen() {
             console.log(`OrderScreen: Ładowanie produktu o ID: ${productId}`);
             setIsLoading(true);
             setError(null);
-            fetch(`${API_BASE_URL}/api/ProductsControler/${productId}`) // Użyj endpointu GET by ID
+            fetch(`${API_URL}/api/ProductsControler/${productId}`) // Użyj endpointu GET by ID
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`Błąd serwera: ${response.status}`);
@@ -121,7 +120,7 @@ export default function OrderScreen() {
 
             console.log("Krok 1: Tworzenie podstawowego zamówienia:", JSON.stringify(orderData, null, 2));
 
-            const orderResponse = await fetch(`${API_BASE_URL}/api/OrderControler`, {
+            const orderResponse = await fetch(`${API_URL}/api/OrderControler`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,7 +153,7 @@ export default function OrderScreen() {
 
             console.log("Krok 2: Dodawanie elementu zamówienia:", JSON.stringify(orderItemData, null, 2));
 
-            const itemResponse = await fetch(`${API_BASE_URL}/api/OrderItemControler`, {
+            const itemResponse = await fetch(`${API_URL}/api/OrderItemControler`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

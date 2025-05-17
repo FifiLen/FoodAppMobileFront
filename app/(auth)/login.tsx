@@ -16,9 +16,9 @@ import {
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext"; // Upewnij się, że ścieżka jest poprawna
 import { COLORS } from "@/components/home-page/constants"; // Upewnij się, że ścieżka jest poprawna
+import { API_URL } from "../constants";
 
 // UPEWNIJ SIĘ, ŻE TEN ADRES JEST POPRAWNY I WSKAZUJE NA TWÓJ BACKEND
-const API_URL = "http://192.168.0.13:8081";
 
 interface LoginSuccessResponse {
     token: string;
@@ -56,10 +56,10 @@ export default function LoginScreen() {
 
         setIsLoading(true);
         setError(null);
-        console.log(`LoginScreen: Próba logowania z URL: ${API_URL}/api/Auth/login`);
+        console.log(`LoginScreen: Próba logowania z URL: ${API_URL}/api/AuthControler/login`);
 
         try {
-            const response = await fetch(`${API_URL}/api/Auth/login`, {
+            const response = await fetch(`${API_URL}/api/AuthControler/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
