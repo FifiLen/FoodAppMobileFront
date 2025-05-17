@@ -75,6 +75,15 @@ export interface ApiUser {
     reviews?: any[];
 }
 
+export interface ApiAddress {
+    id: number;
+    street: string;
+    apartment: string;
+    city: string;
+    postcode: string;
+    country: string;
+}
+
 export interface ApiFavorite {
     id: number;
     userId: number;
@@ -433,4 +442,22 @@ export const FavoriteApi = {
             throw error;
         }
     }
+};
+
+export type AddressPayload = Omit<ApiAddress, "id">;
+
+export const AddressApi = {
+    async list(): Promise<ApiAddress[]> {
+        const res = await authorizedFetch(`${BASE_URL}/api/address`);
+        return res.json();
+    },
+
+    async create(payload: AddressPayload): Promise<ApiAddress> {
+        const res = await authorizedFetch(`${BASE_URL}/api/address`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        return res.json();
+    },
 };
