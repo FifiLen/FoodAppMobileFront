@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   type ListRenderItem,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOWS } from "./constants";
 import {
   RestaurantListItem,
@@ -120,11 +120,13 @@ export function FeaturedRestaurantsSection({
     }
   };
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     if (!isLoadingAuth) {
         fetchFeaturedData();
     }
-  }, [isLoadingAuth, isAuthenticated, userToken]);
+  }, [isLoadingAuth, isAuthenticated, userToken])
+  );
 
   const handleRestaurantPress = (restaurantId: string) => {
     router.push(`/restaurant/${restaurantId}` as any);
