@@ -84,7 +84,7 @@ export default function CreateProductScreen() {
             if (router.canGoBack()) {
                 router.back();
             } else {
-                router.replace({ pathname: '/(admin)/products/index' } as any);
+                router.replace({ pathname: '/(admin)/products' } as any);
             }
         } catch (err: any) {
             const errorMessage = err.message || "Nie udało się dodać produktu. Spróbuj ponownie.";

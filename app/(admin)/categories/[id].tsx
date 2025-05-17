@@ -63,42 +63,34 @@ export default function EditCategoryScreen() {
 
     const handleUpdateCategory = async () => {
         if (!name.trim()) {
-            Alert.alert("Walidacja", "Nazwa kategorii nie może być pusta.");
+            Alert.alert('Walidacja', 'Nazwa kategorii nie może być pusta.');
             return;
         }
         if (name.trim() === initialName) {
-            Alert.alert("Informacja", "Nie wprowadzono żadnych zmian.");
+            Alert.alert('Informacja', 'Nie wprowadzono żadnych zmian.');
             return;
         }
         if (!categoryId) {
-            Alert.alert("Błąd", "Brak ID kategorii do zaktualizowania.");
+            Alert.alert('Błąd', 'Brak ID kategorii do zaktualizowania.');
             return;
         }
 
         setLoading(true);
         setError(null);
-        const payload: CategoryPayload = { name: name.trim() };
 
         try {
-            console.log(`Attempting to update category ${categoryId} with payload:`, payload);
-            await CategoryApi.update(categoryId, payload);
-            console.log("Category updated successfully");
-            Alert.alert("Sukces", `Kategoria "${name.trim()}" została zaktualizowana!`);
-            if (router.canGoBack()) {
-                router.back();
-            } else {
-                router.replace('/(admin)/categories' as any);
-                console.log("Attempted to replace route with '/(admin)/categories'");
-            }
+            await CategoryApi.update(categoryId, { name: name.trim() });
+            Alert.alert('Sukces', `Kategoria "${name.trim()}" została zaktualizowana!`);
+            router.canGoBack() ? router.back() : router.replace('/(admin)/categories');
         } catch (err: any) {
-            console.error(`Error updating category ${categoryId}:`, err);
-            const errorMessage = err.message || "Nie udało się zaktualizować kategorii. Spróbuj ponownie.";
-            setError(errorMessage);
-            Alert.alert("Błąd", errorMessage);
+            const msg = err.message ?? 'Nie udało się zaktualizować kategorii.';
+            setError(msg);
+            Alert.alert('Błąd', msg);
         } finally {
             setLoading(false);
         }
     };
+
 
     if (loadingData) {
         return (

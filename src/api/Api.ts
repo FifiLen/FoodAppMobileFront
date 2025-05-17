@@ -1,3 +1,5 @@
+import { authorizedFetch } from './authorizedFetch';
+
 export interface ApiCategory {
     id: number;
     name: string;
@@ -178,46 +180,204 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export const CategoryApi = { /* ... kod bez zmian ... */
-    async list(): Promise<ApiCategory[]> { const fullUrl = `${BASE_URL}/api/CategoryControler`; try { const res = await fetch(fullUrl); return handleResponse<ApiCategory[]>(res); } catch (error: any) { console.error(`Fetch (Category.list) failed for ${fullUrl}:`, error.message); throw error; } },
-    async getById(id: number | string): Promise<ApiCategory> { const fullUrl = `${BASE_URL}/api/CategoryControler/${id}`; try { const res = await fetch(fullUrl); return handleResponse<ApiCategory>(res); } catch (error: any) { console.error(`Fetch by ID (Category.getById) failed for ${fullUrl}:`, error.message); throw error; } },
-    async create(payload: { name: string }): Promise<ApiCategory> { const fullUrl = `${BASE_URL}/api/CategoryControler`; try { const res = await fetch(fullUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), }); return handleResponse<ApiCategory>(res); } catch (error: any) { console.error(`Create (Category.create) failed for ${fullUrl}:`, error.message); throw error; } },
-    async update(id: number | string, dataToUpdate: { name: string }): Promise<ApiCategory | void> { const fullUrl = `${BASE_URL}/api/CategoryControler/${id}`; const payload: CategoryPayload = { id: typeof id === 'string' ? parseInt(id, 10) : id, name: dataToUpdate.name, }; try { const res = await fetch(fullUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), }); return handleResponse<ApiCategory | void>(res); } catch (error: any) { console.error(`Update (Category.update) failed for ${fullUrl}:`, error.message); throw error; } },
-    async delete(id: number | string): Promise<void> { const fullUrl = `${BASE_URL}/api/CategoryControler/${id}`; try { const res = await fetch(fullUrl, { method: 'DELETE', }); await handleResponse<void>(res); } catch (error: any) { console.error(`Delete (Category.delete) failed for ${fullUrl}:`, error.message); throw error; } }
+    async list(): Promise<ApiCategory[]> { const fullUrl = `${BASE_URL}/api/categories`; try { const res = await fetch(fullUrl); return handleResponse<ApiCategory[]>(res); } catch (error: any) { console.error(`Fetch (Category.list) failed for ${fullUrl}:`, error.message); throw error; } },
+    async getById(id: number | string): Promise<ApiCategory> { const fullUrl = `${BASE_URL}/api/categories/${id}`; try { const res = await fetch(fullUrl); return handleResponse<ApiCategory>(res); } catch (error: any) { console.error(`Fetch by ID (Category.getById) failed for ${fullUrl}:`, error.message); throw error; } },
+    async create(payload: { name: string }): Promise<ApiCategory> {
+        const fullUrl = `${BASE_URL}/api/categories`;
+        try {
+            const res = await authorizedFetch(fullUrl, {          // <-- tu
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            return handleResponse<ApiCategory>(res);
+        } catch (err: any) {
+            console.error(`Create (Category.create) failed for ${fullUrl}:`, err.message);
+            throw err;
+        }
+    },    // async update(id: number | string, dataToUpdate: { name: string }): Promise<ApiCategory | void> { const fullUrl = `${BASE_URL}/api/categories/${id}`; const payload: CategoryPayload = { id: typeof id === 'string' ? parseInt(id, 10) : id, name: dataToUpdate.name, }; try { const res = await fetch(fullUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), }); return handleResponse<ApiCategory | void>(res); } catch (error: any) { console.error(`Update (Category.update) failed for ${fullUrl}:`, error.message); throw error; } },
+    async update(id: string | number, payload: CategoryPayload) {
+        const res = await authorizedFetch(`${BASE_URL}/api/categories/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        return handleResponse<ApiCategory | void>(res);
+    },
+    async delete(id: number | string): Promise<void> {
+        const url = `${BASE_URL}/api/categories/${id}`;
+        try {
+            const res = await authorizedFetch(url, {   // ⬅️ tu
+                method: 'DELETE',
+            });
+            await handleResponse<void>(res);
+        } catch (err: any) {
+            console.error(`Delete (Category.delete) failed for ${url}:`, err.message);
+            throw err;
+        }}};
+
+export const RestaurantApi = {
+    /* ---------- PUBLIC ---------- */
+
+    async list(): Promise<ApiRestaurant[]> {
+        const url = `${BASE_URL}/api/restaurants`;
+        const res = await authorizedFetch(url);             // token nie przeszkadza, może zostać
+        return handleResponse<ApiRestaurant[]>(res);
+    },
+
+    async getById(id: string | number): Promise<ApiRestaurant> {
+        const url = `${BASE_URL}/api/restaurants/${id}`;
+        const res = await authorizedFetch(url);
+        return handleResponse<ApiRestaurant>(res);
+    },
+
+    async listPopular(count?: number): Promise<ApiRestaurant[]> {
+        const url = `${BASE_URL}/api/restaurants/popular` + (count ? `?count=${count}` : '');
+        const res = await authorizedFetch(url);
+        return handleResponse<ApiRestaurant[]>(res);
+    },
+
+    /* ---------- WYMAGAJĄ TOKENU ---------- */
+
+    async create(payload: RestaurantPayload): Promise<ApiRestaurant> {
+        const url = `${BASE_URL}/api/restaurants`;
+        const { id, ...data } = payload;                    // backend sam nada ID
+        const res = await authorizedFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<ApiRestaurant>(res);
+    },
+
+    async update(id: string | number, payload: RestaurantPayload): Promise<ApiRestaurant | void> {
+        const url = `${BASE_URL}/api/restaurants/${id}`;
+        const res = await authorizedFetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, id: Number(id) }),
+        });
+        return handleResponse<ApiRestaurant | void>(res);
+    },
+
+    async delete(id: string | number): Promise<void> {
+        const url = `${BASE_URL}/api/restaurants/${id}`;
+        const res = await authorizedFetch(url, { method: 'DELETE' });
+        await handleResponse<void>(res);
+    },
 };
 
-export const RestaurantApi = { /* ... kod bez zmian ... */
-    async list(): Promise<ApiRestaurant[]> { const fullUrl = `${BASE_URL}/api/RestaurantControler`; try { const res = await fetch(fullUrl); return handleResponse<ApiRestaurant[]>(res); } catch (error: any) { console.error(`Fetch (Restaurant.list) failed for ${fullUrl}:`, error.message); throw error; } },
-    async getById(id: number | string): Promise<ApiRestaurant> { const fullUrl = `${BASE_URL}/api/RestaurantControler/${id}`; try { const res = await fetch(fullUrl); return handleResponse<ApiRestaurant>(res); } catch (error: any) { console.error(`Fetch by ID (Restaurant.getById) failed for ${fullUrl}:`, error.message); throw error; } },
-    async create(payload: RestaurantPayload): Promise<ApiRestaurant> { const fullUrl = `${BASE_URL}/api/RestaurantControler`; const { id, ...createPayload } = payload; try { const res = await fetch(fullUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload), }); return handleResponse<ApiRestaurant>(res); } catch (error: any) { console.error(`Create (Restaurant.create) failed for ${fullUrl}:`, error.message); throw error; } },
-    async update(id: number | string, payload: RestaurantPayload): Promise<ApiRestaurant | void> { const fullUrl = `${BASE_URL}/api/RestaurantControler/${id}`; const payloadToSend: RestaurantPayload = { ...payload, id: typeof id === 'string' ? parseInt(id, 10) : id, }; try { const res = await fetch(fullUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadToSend), }); return handleResponse<ApiRestaurant | void>(res); } catch (error: any) { console.error(`Update (Restaurant.update) failed for ${fullUrl}:`, error.message); throw error; } },
-    async delete(id: number | string): Promise<void> { const fullUrl = `${BASE_URL}/api/RestaurantControler/${id}`; try { const res = await fetch(fullUrl, { method: 'DELETE', }); await handleResponse<void>(res); } catch (error: any) { console.error(`Delete (Restaurant.delete) failed for ${fullUrl}:`, error.message); throw error; } }
+export const DishApi = {
+    /* ---------- PUBLIC ---------- */
+
+    /**
+     * Pobierz listę dań.
+     * Możesz opcjonalnie filtrować po restauracji i/lub kategorii
+     */
+    async list(params?: { restaurantId?: number; categoryId?: number }): Promise<ApiDish[]> {
+        const qs =
+            params && (params.restaurantId || params.categoryId)
+                ? '?' +
+                new URLSearchParams({
+                    ...(params.restaurantId ? { restaurantId: String(params.restaurantId) } : {}),
+                    ...(params.categoryId ? { categoryId: String(params.categoryId) } : {}),
+                }).toString()
+                : '';
+
+        const url = `${BASE_URL}/api/products${qs}`;
+        const res = await authorizedFetch(url);
+        return handleResponse<ApiDish[]>(res);
+    },
+
+    async getById(id: string | number): Promise<ApiDish> {
+        const url = `${BASE_URL}/api/products/${id}`;
+        const res = await authorizedFetch(url);
+        return handleResponse<ApiDish>(res);
+    },
+
+    /* ---------- WYMAGAJĄ TOKENU ---------- */
+
+    async create(payload: DishPayload): Promise<ApiDish> {
+        const url = `${BASE_URL}/api/products`;
+        const { id, ...data } = payload;                // backend sam nada ID
+        const res = await authorizedFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<ApiDish>(res);
+    },
+
+    async update(id: string | number, payload: DishPayload): Promise<ApiDish | void> {
+        const url = `${BASE_URL}/api/products/${id}`;
+        const res = await authorizedFetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, id: Number(id) }),
+        });
+        return handleResponse<ApiDish | void>(res);
+    },
+
+    async delete(id: string | number): Promise<void> {
+        const url = `${BASE_URL}/api/products/${id}`;
+        const res = await authorizedFetch(url, { method: 'DELETE' });
+        await handleResponse<void>(res);
+    },
 };
 
-export const DishApi = { /* ... kod bez zmian ... */
-    async list(): Promise<ApiDish[]> { const fullUrl = `${BASE_URL}/api/ProductsControler`; try { const res = await fetch(fullUrl); return handleResponse<ApiDish[]>(res); } catch (error: any) { console.error(`Fetch (Dish.list) failed for ${fullUrl}:`, error.message); throw error; } },
-    async getById(id: number | string): Promise<ApiDish> { const fullUrl = `${BASE_URL}/api/ProductsControler/${id}`; try { const res = await fetch(fullUrl); return handleResponse<ApiDish>(res); } catch (error: any) { console.error(`Fetch by ID (Dish.getById) failed for ${fullUrl}:`, error.message); throw error; } },
-    async create(payload: DishPayload): Promise<ApiDish> { const fullUrl = `${BASE_URL}/api/ProductsControler`; const { id, ...createPayload } = payload; try { const res = await fetch(fullUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload), }); return handleResponse<ApiDish>(res); } catch (error: any) { console.error(`Create (Dish.create) failed for ${fullUrl}:`, error.message); throw error; } },
-    async update(id: number | string, payload: DishPayload): Promise<ApiDish | void> { const fullUrl = `${BASE_URL}/api/ProductsControler/${id}`; const payloadToSend: DishPayload = { ...payload, id: typeof id === 'string' ? parseInt(id, 10) : id, }; try { const res = await fetch(fullUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadToSend), }); return handleResponse<ApiDish | void>(res); } catch (error: any) { console.error(`Update (Dish.update) failed for ${fullUrl}:`, error.message); throw error; } },
-    async delete(id: number | string): Promise<void> { const fullUrl = `${BASE_URL}/api/ProductsControler/${id}`; try { const res = await fetch(fullUrl, { method: 'DELETE', }); await handleResponse<void>(res); } catch (error: any) { console.error(`Delete (Dish.delete) failed for ${fullUrl}:`, error.message); throw error; } }
-};
+export const ReviewApi = {
+    /**
+     * Pobierz recenzje; opcjonalnie przefiltruj po restauracji lub produkcie
+     */
+    async list(params?: { restaurantId?: number; productId?: number }): Promise<ApiReview[]> {
+        const qs =
+            params && (params.restaurantId || params.productId)
+                ? '?' +
+                new URLSearchParams({
+                    ...(params.restaurantId ? { restaurantId: String(params.restaurantId) } : {}),
+                    ...(params.productId ? { productId: String(params.productId) } : {}),
+                }).toString()
+                : '';
 
-export const ReviewApi = { /* ... kod bez zmian ... */
-    async list(): Promise<ApiReview[]> { const fullUrl = `${BASE_URL}/api/ReviewControler`; try { const res = await fetch(fullUrl); return handleResponse<ApiReview[]>(res); } catch (error: any) { console.error(`Fetch (Review.list) failed for ${fullUrl}:`, error.message); throw error; } },
-    async create(payload: ReviewPayload): Promise<ApiReview> { const fullUrl = `${BASE_URL}/api/ReviewControler`; try { const res = await fetch(fullUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), }); return handleResponse<ApiReview>(res); } catch (error: any) { console.error(`Create (Review.create) failed for ${fullUrl}:`, error.message); throw error; } },
-    async delete(id: number | string): Promise<void> { const fullUrl = `${BASE_URL}/api/ReviewControler/${id}`; try { const res = await fetch(fullUrl, { method: 'DELETE', }); await handleResponse<void>(res); } catch (error: any) { console.error(`Delete (Review.delete) failed for ${fullUrl}:`, error.message); throw error; } }
+        const url = `${BASE_URL}/api/reviews${qs}`;
+        const res = await authorizedFetch(url);
+        return handleResponse<ApiReview[]>(res);
+    },
+
+    /**
+     * Dodaj recenzję (wymaga zalogowania)
+     */
+    async create(payload: ReviewPayload): Promise<ApiReview> {
+        const url = `${BASE_URL}/api/reviews`;
+        const res = await authorizedFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        return handleResponse<ApiReview>(res);
+    },
+
+    /**
+     * Usuń recenzję (wymaga uprawnień do kasowania)
+     */
+    async delete(id: number | string): Promise<void> {
+        const url = `${BASE_URL}/api/reviews/${id}`;
+        const res = await authorizedFetch(url, { method: 'DELETE' });
+        await handleResponse<void>(res);
+    },
 };
 
 export const UserApi = { /* ... kod bez zmian ... */
-    async list(): Promise<ApiUser[]> { const fullUrl = `${BASE_URL}/api/UserControler`; try { const res = await fetch(fullUrl); return handleResponse<ApiUser[]>(res); } catch (error: any) { console.error(`Fetch (User.list) failed for ${fullUrl}:`, error.message); throw error; } },
-    async getById(id: number | string): Promise<ApiUser> { const fullUrl = `${BASE_URL}/api/UserControler/${id}`; try { const res = await fetch(fullUrl); return handleResponse<ApiUser>(res); } catch (error: any) { console.error(`Fetch by ID (User.getById) failed for ${fullUrl}:`, error.message); throw error; } },
-    async create(payload: UserCreatePayload): Promise<ApiUser> { const fullUrl = `${BASE_URL}/api/UserControler`; try { const res = await fetch(fullUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), }); return handleResponse<ApiUser>(res); } catch (error: any) { console.error(`Create (User.create) failed for ${fullUrl}:`, error.message); throw error; } },
-    async update(id: number | string, payload: UserUpdatePayload): Promise<ApiUser | void> { const fullUrl = `${BASE_URL}/api/UserControler/${id}`; const payloadToSend: UserUpdatePayload = { ...payload, id: typeof id === 'string' ? parseInt(id, 10) : id, }; try { const res = await fetch(fullUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadToSend), }); return handleResponse<ApiUser | void>(res); } catch (error: any) { console.error(`Update (User.update) failed for ${fullUrl}:`, error.message); throw error; } },
-    async delete(id: number | string): Promise<void> { const fullUrl = `${BASE_URL}/api/UserControler/${id}`; try { const res = await fetch(fullUrl, { method: 'DELETE', }); await handleResponse<void>(res); } catch (error: any) { console.error(`Delete (User.delete) failed for ${fullUrl}:`, error.message); throw error; } }
+    async list(): Promise<ApiUser[]> { const fullUrl = `${BASE_URL}/api/User`; try { const res = await fetch(fullUrl); return handleResponse<ApiUser[]>(res); } catch (error: any) { console.error(`Fetch (User.list) failed for ${fullUrl}:`, error.message); throw error; } },
+    async getById(id: number | string): Promise<ApiUser> { const fullUrl = `${BASE_URL}/api/User/${id}`; try { const res = await fetch(fullUrl); return handleResponse<ApiUser>(res); } catch (error: any) { console.error(`Fetch by ID (User.getById) failed for ${fullUrl}:`, error.message); throw error; } },
+    async create(payload: UserCreatePayload): Promise<ApiUser> { const fullUrl = `${BASE_URL}/api/User`; try { const res = await fetch(fullUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), }); return handleResponse<ApiUser>(res); } catch (error: any) { console.error(`Create (User.create) failed for ${fullUrl}:`, error.message); throw error; } },
+    async update(id: number | string, payload: UserUpdatePayload): Promise<ApiUser | void> { const fullUrl = `${BASE_URL}/api/User/${id}`; const payloadToSend: UserUpdatePayload = { ...payload, id: typeof id === 'string' ? parseInt(id, 10) : id, }; try { const res = await fetch(fullUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadToSend), }); return handleResponse<ApiUser | void>(res); } catch (error: any) { console.error(`Update (User.update) failed for ${fullUrl}:`, error.message); throw error; } },
+    async delete(id: number | string): Promise<void> { const fullUrl = `${BASE_URL}/api/User/${id}`; try { const res = await fetch(fullUrl, { method: 'DELETE', }); await handleResponse<void>(res); } catch (error: any) { console.error(`Delete (User.delete) failed for ${fullUrl}:`, error.message); throw error; } }
 };
 
 export const FavoriteApi = {
     async list(): Promise<ApiFavorite[]> {
-        const fullUrl = `${BASE_URL}/api/FavoriteControler`;
+        const fullUrl = `${BASE_URL}/api/Favorite`;
         try {
             const res = await fetch(fullUrl);
             return handleResponse<ApiFavorite[]>(res);
@@ -227,7 +387,7 @@ export const FavoriteApi = {
         }
     },
     async getById(id: number | string): Promise<ApiFavorite> {
-        const fullUrl = `${BASE_URL}/api/FavoriteControler/${id}`;
+        const fullUrl = `${BASE_URL}/api/Favorite/${id}`;
         try {
             const res = await fetch(fullUrl);
             return handleResponse<ApiFavorite>(res);
@@ -237,7 +397,7 @@ export const FavoriteApi = {
         }
     },
     async create(payload: FavoriteCreatePayload): Promise<ApiFavorite> {
-        const fullUrl = `${BASE_URL}/api/FavoriteControler`;
+        const fullUrl = `${BASE_URL}/api/Favorite`;
         const actualPayload = {
             id: 0, // Backend powinien to zignorować lub ustawić sam
             userId: payload.userId,
@@ -253,7 +413,7 @@ export const FavoriteApi = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(actualPayload),
             });
-            // Uwaga na odpowiedź text/plain z POST /api/FavoriteControler (ze Swaggera)
+            // Uwaga na odpowiedź text/plain z POST /api/Favorite (ze Swaggera)
             // handleResponse może wymagać dostosowania, jeśli backend nie zwraca JSON
             return handleResponse<ApiFavorite>(res);
         } catch (error: any) {
@@ -262,7 +422,7 @@ export const FavoriteApi = {
         }
     },
     async delete(id: number | string): Promise<void> {
-        const fullUrl = `${BASE_URL}/api/FavoriteControler/${id}`;
+        const fullUrl = `${BASE_URL}/api/Favorite/${id}`;
         try {
             const res = await fetch(fullUrl, {
                 method: 'DELETE',

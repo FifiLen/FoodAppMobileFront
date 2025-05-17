@@ -22,6 +22,9 @@ interface CategoryForList {
     name: string;
 }
 
+type CategoriesApiResponse = ApiCategory[] | { $values: ApiCategory[] };
+
+
 export default function ManageCategoriesListScreen() {
     const router = useRouter();
     const [categories, setCategories] = useState<CategoryForList[]>([]);
@@ -32,14 +35,20 @@ export default function ManageCategoriesListScreen() {
         setLoading(true);
         setError(null);
         try {
-            const apiCategories = await CategoryApi.list();
+            const apiCategoriesRaw = await CategoryApi.list() as CategoriesApiResponse;
+
+            // 2) bezpiecznie wyciągnij tablicę
+            const apiCategories = Array.isArray(apiCategoriesRaw)
+                ? apiCategoriesRaw
+                : apiCategoriesRaw.$values ?? [];
+
             const mappedCategories: CategoryForList[] = apiCategories.map(cat => ({
-                id: cat.id.toString(),
+                id: String(cat.id),
                 name: cat.name,
             }));
             setCategories(mappedCategories);
         } catch (err: any) {
-            setError(err.message || "Nie udało się pobrać kategorii.");
+            setError(err.message || 'Nie udało się pobrać kategorii.');
         } finally {
             setLoading(false);
         }
@@ -73,18 +82,17 @@ export default function ManageCategoriesListScreen() {
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            await CategoryApi.delete(categoryId);
+                            await CategoryApi.delete(categoryId);          // ← token już w nagłówku
                             Alert.alert("Sukces", `Kategoria "${categoryName}" została usunięta.`);
-                            fetchCategories();
-                        } catch (delErr: any) {
-                            Alert.alert("Błąd", `Nie udało się usunąć kategorii: ${delErr.message}`);
+                            fetchCategories();                              // ← lista się odświeży
+                        } catch (err: any) {
+                            Alert.alert("Błąd", `Nie udało się usunąć kategorii: ${err.message}`);
                         }
                     },
                 },
             ]
         );
     };
-
     if (loading) {
         return (
             <View style={styles.centered}>

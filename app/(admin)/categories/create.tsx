@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { CategoryApi, CategoryPayload } from '@/src/api/Api';
 import { COLORS } from '@/components/home-page/constants';
 
+
 export default function CreateCategoryScreen() {
     const router = useRouter();
     const [name, setName] = useState('');
@@ -42,7 +43,7 @@ export default function CreateCategoryScreen() {
             if (router.canGoBack()) {
                 router.back();
             } else {
-                router.replace('/(admin)/categories/index');
+                router.replace('/(admin)/categories');
             }
         } catch (err: any) {
             console.error("Error creating category:", err);
