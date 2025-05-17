@@ -7,6 +7,7 @@ export interface ProblemDetails {
   detail?: string | null;
   instance?: string | null;
   [key: string]: any;
+  errors?: Record<string, string[]>
 }
 
 // --- Address DTOs ---
@@ -271,4 +272,23 @@ export interface ReviewSummaryDto { // From RestaurantDetailDto
   comment: string | null;
   reviewDate: string; // date-time
   userName: string | null;
+}
+
+export interface UserProfileDto {
+  id: number;
+  name: string;
+  email: string;
+  avatarUrl?: string | null; // Make avatarUrl optional as per backend DTO
+}
+
+export interface UpdateUserProfileDto {
+  name?: string;
+  email?: string;
+  avatarUrl?: string | null;
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string; // Frontend uses this for confirmation
 }

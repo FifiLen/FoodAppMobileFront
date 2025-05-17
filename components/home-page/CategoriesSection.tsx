@@ -37,8 +37,19 @@ interface Category {
 }
 
 const iconMap: Record<string, string> = {
-    All: "🍽️", Pizza: "🍕", Burgers: "🍔", Sushi: "🍣",
-    Healthy: "🥗", Desserts: "🍰", Pasta: "🍝", Tacos: "🌮",
+    All: "🍽️",
+    Pizza: "🍕",
+    Burgery: "🍔",
+    Sushi: "🍣",
+    Healthy: "🥗",
+    Desserts: "🍰",
+    Pasta: "🍝",
+    Tacos: "🌮",
+    Kanapki: "🥪", // Added Kanapki
+    Przystawki: "🍤", // Added Przystawki (using shrimp, you can choose another)
+    Europejskie: "🇪🇺", // Added Europejskie (using the European flag, you can choose another)
+    Śniadania: "🍳", // Added Śniadania (using fried egg, you can choose another)
+    Tortilla: "🌯", // Added Tortille
     // Dodaj więcej mapowań, jeśli backend zwraca inne nazwy kategorii
 };
 

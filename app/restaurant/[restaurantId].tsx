@@ -35,7 +35,7 @@ const DEFAULT_RESTAURANT_IMAGE_DETAIL = require('../../assets/images/placeholder
 const LOCAL_PLACEHOLDER_IMAGE_PRODUCT = require('../../assets/images/placeholder-restaurant.png');
 
 const getProductImageSource = (apiProductData?: ApiProductDto): ImageSourcePropType => {
-    if (apiProductData?.imageUrl && apiProductData.imageUrl.startsWith("http")) {
+    if (apiProductData?.imageUrl ) {
         return { uri: apiProductData.imageUrl };
     }
     return LOCAL_PLACEHOLDER_IMAGE_PRODUCT;
