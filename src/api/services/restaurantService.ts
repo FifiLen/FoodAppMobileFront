@@ -6,6 +6,7 @@ import type {
   PopularRestaurantDto,
   CreateRestaurantDto,
   UpdateRestaurantDto,
+  TopRatedRestaurantDto,
 } from "./types";
 
 export const restaurantService = {
@@ -40,6 +41,11 @@ export const restaurantService = {
       body: JSON.stringify(data),
       authToken,
     });
+  },
+  getTopRated: async (count: number = 5): Promise<TopRatedRestaurantDto[]> => {
+    return apiClient<TopRatedRestaurantDto[]>(
+      `/api/restaurants/top-rated?count=${count}`,
+    );
   },
 
   // DELETE: api/restaurants/{id} - Admin only

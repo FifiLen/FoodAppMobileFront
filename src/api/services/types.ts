@@ -292,3 +292,12 @@ export interface ChangePasswordDto {
   newPassword: string;
   confirmNewPassword: string; // Frontend uses this for confirmation
 }
+
+export interface TopRatedRestaurantDto {
+  id: number;
+  name: string | null;
+  imageUrl: string | null;
+  actualAverageRating: number | null;
+  deliveryTime: string | null;
+  priceRange: string | null;
+}

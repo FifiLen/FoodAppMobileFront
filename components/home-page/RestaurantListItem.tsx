@@ -30,6 +30,7 @@ export interface RestaurantListItemProps {
   isOpen?: boolean | null; // Allow null
   promoLabel?: string | null; // Allow null
   isFavorite?: boolean | null; // Allow null
+  priceRange?: string | null;
 }
 
 interface RestaurantListItemComponentProps {

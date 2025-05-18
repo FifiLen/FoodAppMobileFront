@@ -16,10 +16,11 @@ import {
 import { MapPin, Search, X, Percent } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 
-import { COLORS } from "@/components/home-page/constants"
+import { COLORS, SPACING } from "@/components/home-page/constants"
 import { CategoriesSection } from "@/components/home-page/CategoriesSection"
 import { ProductsSection } from "@/components/home-page/ProductSection"
 import { FeaturedRestaurantsSection } from "@/components/home-page/FeaturedRestaurantsSection"
+import { TopRatedRestaurantsSection } from "./TopRatedRestaurantsSection"
 
 interface HomeContentProps {
     scrollY: Animated.Value
@@ -288,7 +289,7 @@ export const HomeContent: React.FC<HomeContentProps> = ({
                 <ProductsSection selectedCategoryId={activeCategoryId} />
             </Animated.View>
 
-            {/* Featured Restaurants */}
+
             <Animated.View
                 style={{
                     opacity: fadeAnim,
@@ -302,6 +303,22 @@ export const HomeContent: React.FC<HomeContentProps> = ({
                     horizontal={true}
                     onViewAllPress={handleViewAllRestaurants}
                 />
+            </Animated.View>
+
+            <Animated.View
+                style={{
+                    opacity: fadeAnim, // Assuming you have these animations
+                    transform: [{ translateY: slideAnim }],
+                    marginTop: SPACING.md, // Use constants
+                    marginBottom: SPACING.md,
+                  }}
+            >
+                <TopRatedRestaurantsSection
+                    title="Najlepiej Oceniane"
+                    count={5} // Number of top-rated to show
+                    showViewAllButton={true}
+                    // itemStyle is handled within TopRatedRestaurantsSection for its specific layout
+                 />
             </Animated.View>
         </ScrollView>
     )
