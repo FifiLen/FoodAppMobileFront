@@ -26,6 +26,7 @@ export interface ProductItemData {
     name: string;
     description?: string;
     price: string;
+    restaurantId: string;
     restaurantName?: string;
     categoryName?: string;
     image: ImageSourcePropType;
@@ -77,10 +78,16 @@ export function ProductItem({ item, onToggleFavorite, style }: ProductItemCompon
     };
 
     const handleItemPress = () => {
-        // Default navigation for ProductItem
-        router.push(`/order/${item.id}`); // Or router.push(`/product/${item.id}`); if that's preferred
-    };
+        const restaurantId = item.restaurantId || item.apiOriginalProductData?.restaurantId;
 
+        if (restaurantId) {
+            console.log(`Nawigacja do restauracji ID: ${restaurantId}`);
+            router.push(`/restaurant/${restaurantId}`); // Zauważ zmianę: /restaurant/ zamiast /restaurants/
+        } else {
+            console.error("Brak restaurantId dla produktu:", item.name);
+            Alert.alert("Błąd", "Nie można otworzyć strony restauracji - brak informacji o restauracji.");
+        }
+    };
     const handleFavoriteToggle = async () => {
         if (!isAuthenticated) {
             Alert.alert("Logowanie", "Zaloguj się, aby dodać do ulubionych.");

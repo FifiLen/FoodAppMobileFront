@@ -17,7 +17,6 @@ import { useRouter } from "expo-router";
 import { COLORS } from "../../components/home-page/constants";
 import { API_URL } from "../constants";
 
-
 interface ApiError {
     code?: string;
     description: string;
@@ -97,17 +96,29 @@ export default function RegistrationScreen() {
                 throw new Error(errorMessage);
             }
 
-            // Rejestracja pomyślna (zakładamy status 2xx i brak potrzeby parsowania ciała odpowiedzi)
+            // Rejestracja pomyślna
             console.log("RegistrationScreen: Rejestracja pomyślna, status:", response.status);
-            Alert.alert(
-                "Rejestracja zakończona",
-                "Twoje konto zostało utworzone. Możesz się teraz zalogować.",
-                [{ text: "OK", onPress: () => router.push("/(auth)/login") }],
-            );
+
+            // Czyszczenie formularza
             setName("");
             setEmail("");
             setPassword("");
             setConfirmPassword("");
+
+            // Najpierw nawiguj do logowania, potem pokaż alert
+            console.log("Próbuję nawigować do ekranu logowania...");
+
+            // Używamy setTimeout aby dać trochę czasu na aktualizację stanu
+            setTimeout(() => {
+                router.replace("/(auth)/login");
+                console.log("Komenda nawigacji wykonana");
+
+                // Alert po nawigacji
+                Alert.alert(
+                    "Rejestracja zakończona",
+                    "Twoje konto zostało utworzone. Możesz się teraz zalogować."
+                );
+            }, 100);
 
         } catch (err: any) {
             console.error("RegistrationScreen: Błąd w bloku catch", err);
