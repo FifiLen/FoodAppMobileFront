@@ -285,7 +285,8 @@ export function FeaturedRestaurantsSection({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: SPACING.xl,
+    width: "100%",
+    marginBottom: SPACING.xs,
   },
   headerContainer: {
     flexDirection: "row",

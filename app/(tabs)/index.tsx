@@ -18,7 +18,7 @@ import { API_URL } from "@/app/constants"
 import { categoryService, restaurantService, favoriteService } from "@/src/api/services"
 
 // Import our new components
-import { AnimatedHeader } from "@/components/home-page/AnimatedHeader"
+// import { AnimatedHeader } from "@/components/home-page/AnimatedHeader"
 import { HomeContent } from "@/components/home-page/HomeContent"
 import { FilterSheet } from "@/components/home-page/FilterSheet"
 import { SearchResults } from "@/components/home-page/SearchResult"
@@ -275,7 +275,7 @@ export default function ModernFoodApp() {
     return (
         <View style={{ flex: 1, backgroundColor: COLORS.background }}>
             {/* Animated Header */}
-            <AnimatedHeader headerOpacity={headerOpacity} />
+            {/*<AnimatedHeader headerOpacity={headerOpacity} />*/}
 
             {searchTerm.trim() ? (
                 <SearchResults
